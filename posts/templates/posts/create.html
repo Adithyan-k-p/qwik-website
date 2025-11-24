@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Qwip | Qwik{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* CSS FIXES */
+    .main-content {
+        width: 100%; /* Ensure content doesn't force width */
+        display: flex;
+        justify-content: center;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .create-container {
+        width: 100%;
+        max-width: 800px; /* INCREASED WIDTH */
+        background: var(--bg-card);
+        border-radius: var(--card-radius);
+        padding: 30px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 50px;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 25px;
+        text-align: center;
+    }
+
+    /* --- IMAGE UPLOAD AREA --- */
+    .upload-label {
+        display: block;
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .media-preview-box {
+        width: 100%;
+        min-height: 400px; /* Taller area */
+        background-color: var(--bg-body);
+        border: 2px dashed var(--text-secondary);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 25px;
+        overflow: hidden;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .media-preview-box:hover {
+        background-color: var(--bg-hover);
+        border-color: var(--accent-solid);
+    }
+    
+    .media-preview-box.has-image {
+        border: none;
+        background: #000;
+        height: auto; /* Allow height to adjust to image */
+    }
+
+    .media-preview-box img {
+        width: 100%;
+        height: auto;
+        max-height: 600px;
+        object-fit: contain;
+        display: none;
+    }
+
+    .placeholder-text {
+        text-align: center;
+        color: var(--text-secondary);
+        pointer-events: none;
+    }
+    .placeholder-text i { font-size: 4rem; margin-bottom: 15px; color: var(--accent-solid); opacity: 0.8; }
+    .placeholder-text h4 { font-size: 1.2rem; margin-bottom: 5px; color: var(--text-main); }
+
+    /* --- INPUTS --- */
+    .caption-input {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        resize: none;
+        font-family: 'Poppins', sans-serif;
+        font-size: 1.1rem;
+        background: transparent;
+        outline: none;
+        color: var(--text-main);
+        border-bottom: 1px solid var(--bg-hover);
+        margin-bottom: 30px;
+    }
+
+    /* --- RADIO CARDS --- */
+    .type-selection {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 25px;
+        flex-wrap: wrap; /* Fix for mobile */
+    }
+
+    .type-card {
+        flex: 1;
+        min-width: 200px;
+        padding: 20px;
+        border: 2px solid var(--bg-hover);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    /* Hide Default Radio */
+    .type-selection input[type="radio"] { display: none; }
+
+    .type-selection input[type="radio"]:checked + .type-card {
+        border-color: var(--accent-solid);
+        background: rgba(102, 126, 234, 0.08);
+    }
+    
+    .type-card h5 { font-size: 1.1rem; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+    .type-card p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; }
+
+    .submit-btn {
+        width: 100%;
+        padding: 16px;
+        border-radius: 50px;
+        background: var(--accent-gradient);
+        color: white;
+        font-weight: 600;
+        border: none;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    .submit-btn:hover { transform: scale(1.01); }
+
+    .section-label {
+        font-size: 0.9rem; 
+        color: var(--text-secondary); 
+        font-weight: 600; 
+        margin-bottom: 10px; 
+        margin-top: 20px;
+        display: block;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <div class="create-container">
+        <h2 class="page-title">Create New Qwip</h2>
+
+        <!-- IMPORTANT: enctype is required for file uploads -->
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            {{ form.media_type }}
+
+            <!-- CLICKABLE AREA FOR UPLOAD -->
+            <!-- The label wraps the box, so clicking anywhere inside triggers the hidden file input -->
+            <label class="upload-label" for="fileInput">
+                <!-- 1. The Hidden Input from Django Form -->
+                {{ form.image }}
+
+                <!-- 2. The Visual Preview Box -->
+                <div class="media-preview-box" id="previewBox">
+                    <div class="placeholder-text" id="placeholderInfo">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <h4>Select Media</h4>
+                        <p>Click to upload from device</p>
+                    </div>
+                    <img id="imagePreview" src="" alt="Preview">
+                </div>
+            </label>
+
+            <!-- 3. Caption -->
+            {{ form.caption }}
+
+            <!-- 4. Qwip Type -->
+            <label style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 10px; display:block;">
+                Qwip Duration
+            </label>
+
+            <div class="type-selection">
+                <label>
+                    <input type="radio" name="post_type" value="temporary" checked>
+                    <div class="type-card">
+                        <h5><i class="fa-solid fa-hourglass-half"></i> Temporary</h5>
+                        <p>Disappears in 24 hrs. Can be converted later.</p>
+                    </div>
+                </label>
+
+                <label>
+                    <input type="radio" name="post_type" value="permanent">
+                    <div class="type-card">
+                        <h5><i class="fa-solid fa-infinity"></i> Permanent</h5>
+                        <p>Stays on your profile forever.</p>
+                    </div>
+                </label>
+            </div>
+
+            <!--  VISIBILITY SELECTION -->
+            <label class="section-label">Who can see this?</label>
+            <div class="type-selection">
+                <label>
+                    <input type="radio" name="visibility" value="public" checked>
+                    <div class="type-card">
+                        <h5><i class="fa-solid fa-earth-americas"></i> Public</h5>
+                        <p>Visible to everyone on Qwik.</p>
+                    </div>
+                </label>
+
+                <label>
+                    <input type="radio" name="visibility" value="private">
+                    <div class="type-card">
+                        <h5><i class="fa-solid fa-user-group"></i> Friends</h5>
+                        <p>Only followers can see this.</p>
+                    </div>
+                </label>
+            </div>
+
+            <button type="submit" class="submit-btn">Post Qwip</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const previewBox = document.getElementById('previewBox');
+    const imagePreview = document.getElementById('imagePreview');
+    const placeholderInfo = document.getElementById('placeholderInfo');
+
+    fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        
+        if (file) {
+            // Create a FileReader to read the file from user's device
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                // Set the image src to the file data
+                imagePreview.src = e.target.result;
+                
+                // Show Image, Hide Placeholder
+                imagePreview.style.display = 'block';
+                placeholderInfo.style.display = 'none';
+                previewBox.classList.add('has-image');
+            }
+
+            reader.readAsDataURL(file); // Trigger the read
+        } else {
+            // Reset if no file selected
+            imagePreview.style.display = 'none';
+            placeholderInfo.style.display = 'block';
+            previewBox.classList.remove('has-image');
+        }
+    });
+</script>
+{% endblock %}

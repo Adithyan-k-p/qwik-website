@@ -1,0 +1,281 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Qwik{% endblock %}</title>
+    
+    <!-- FONTS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Grand+Hotel&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- ICONS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root {
+            --bg-body: #F0F2F5;
+            --bg-card: #FFFFFF;
+            --bg-hover: #E4E6EB;
+            --text-main: #1c1e21;
+            --text-secondary: #65676B;
+            --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --accent-solid: #667eea;
+
+            --sidebar-w-desktop: 280px;
+            --feed-width: 600px;
+            --header-height-mobile: 60px;
+            --bottom-nav-height: 60px;
+            --card-radius: 16px;
+        }
+
+        /* Dark Mode */
+        body.dark-mode {
+            --bg-body: #18191A;
+            --bg-card: #242526;
+            --bg-hover: #3A3B3C;
+            --text-main: #E4E6EB;
+            --text-secondary: #B0B3B8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        /* --- MOBILE HEADER --- */
+        .mobile-header {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: var(--header-height-mobile);
+            background: var(--bg-card); z-index: 1000; padding: 0 20px;
+            align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .mobile-header .brand-text {
+            font-family: 'Grand Hotel', cursive; font-size: 2rem;
+            background: var(--accent-gradient); -webkit-background-clip: text;
+            background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+        }
+        .mobile-header .notif-icon { font-size: 1.4rem; color: var(--text-main); }
+
+        /* --- LAYOUT GRID --- */
+        .layout-container {
+            display: flex; justify-content: center; max-width: 1440px; margin: 0 auto; min-height: 100vh;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: var(--sidebar-w-desktop); height: 100vh; position: sticky; top: 0;
+            padding: 25px 20px; display: flex; flex-direction: column; transition: width 0.3s ease; z-index: 100;
+        }
+
+        .desktop-brand {
+            font-family: 'Grand Hotel', cursive; font-size: 2.4rem; margin-bottom: 35px; padding-left: 15px;
+            background: var(--accent-gradient); -webkit-background-clip: text;
+            background-clip: text; -webkit-text-fill-color: transparent; color: transparent; 
+        }
+
+        .nav-menu { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+
+        .nav-item {
+            display: flex; align-items: center; padding: 14px 16px; border-radius: 50px;
+            color: var(--text-secondary); font-weight: 500; font-size: 1.05rem;
+            transition: all 0.2s; cursor: pointer; text-decoration: none;
+        }
+        .nav-item:hover { background-color: var(--bg-hover); color: var(--text-main); }
+        .nav-item.active { color: var(--accent-solid); background: rgba(102, 126, 234, 0.1); font-weight: 600; }
+        .nav-item i { font-size: 1.4rem; width: 30px; text-align: center; }
+        .nav-text { margin-left: 15px; white-space: nowrap; }
+
+        /* More Menu */
+        .more-section { position: relative; }
+        .dropdown-menu {
+            position: absolute; bottom: 60px; left: 0; width: 100%;
+            background: var(--bg-card); border-radius: 12px; padding: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: none; flex-direction: column; gap: 5px;
+        }
+        .dropdown-menu.show { display: flex; }
+        .drop-item {
+            padding: 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+        }
+        .drop-item:hover { background-color: var(--bg-hover); }
+
+        /* --- FEED --- */
+        .main-content {
+            width: var(--feed-width); margin: 0 30px; padding-top: 30px; padding-bottom: 80px;
+        }
+
+        /* --- RIGHT SIDEBAR --- */
+        .right-sidebar {
+            width: 300px; padding-top: 30px; position: sticky; top: 0; height: 100vh;
+        }
+        .suggest-card {
+            background: var(--bg-card); padding: 20px; border-radius: var(--card-radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 1100px) {
+            .right-sidebar { display: none; }
+            .main-content { margin: 0 auto; }
+        }
+        @media (max-width: 900px) {
+            :root { --sidebar-w-desktop: 80px; }
+            .desktop-brand { display: none; }
+            .nav-text { display: none; }
+            .nav-item { justify-content: center; padding: 15px 0; }
+            .nav-item i { margin: 0; font-size: 1.6rem; }
+            .sidebar { align-items: center; }
+            .nav-menu { width: 100%; align-items: center; padding-top: 20px; }
+            .dropdown-menu { width: 250px; left: 100%; bottom: 0; margin-left: 10px; }
+        }
+        @media (max-width: 600px) {
+            .mobile-header { display: flex; }
+            .main-content { width: 100%; margin: 0; padding-top: calc(var(--header-height-mobile) + 15px); }
+            .sidebar {
+                position: fixed; bottom: 0; top: auto; left: 0; width: 100%; height: var(--bottom-nav-height);
+                flex-direction: row; background: var(--bg-card); border-top: 1px solid #dadde1;
+                padding: 0; justify-content: space-around; align-items: center;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            }
+            .nav-menu { flex-direction: row; width: 100%; justify-content: space-around; padding: 0; gap: 0; }
+            .nav-item { padding: 10px; border-radius: 8px; }
+            .nav-item i { font-size: 1.5rem; }
+            .desktop-brand, .hide-on-mobile, .more-section { display: none !important; }
+            .nav-item.active { background: transparent; color: var(--accent-solid); }
+        }
+
+        /* Extra CSS for Post styling which is used in Home and Profile */
+        .post {
+            background: var(--bg-card); border-radius: var(--card-radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; overflow: hidden;
+        }
+        .post-header { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+        .user-block { display: flex; align-items: center; gap: 12px; }
+        .p-avatar { width: 42px; height: 42px; border-radius: 12px; object-fit: cover; }
+        .p-info h4 { font-size: 0.95rem; font-weight: 600; }
+        .p-info span { font-size: 0.75rem; color: var(--text-secondary); }
+        .post-img-container { width: 100%; background: #f5f5f5; }
+        .post-img-container img { width: 100%; height: auto; display: block; }
+        .post-footer { padding: 12px 16px; }
+        .action-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .left-actions { display: flex; gap: 16px; }
+        .act-btn { display: flex; align-items: center; gap: 6px; font-size: 1rem; color: var(--text-main); background: none; border: none; cursor: pointer; }
+        .act-btn i { font-size: 1.3rem; }
+        .act-btn.liked i { color: #e0245e; font-weight: 900; }
+        .caption-area { font-size: 0.95rem; line-height: 1.5; }
+        .tags { color: var(--accent-solid); }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- MOBILE HEADER -->
+    <header class="mobile-header">
+        <div class="brand-text">Qwik</div>
+        <div class="notif-icon"><i class="fa-regular fa-heart"></i></div>
+    </header>
+
+    <div class="layout-container">
+        
+        <!-- SIDEBAR / BOTTOM NAV -->
+        <aside class="sidebar">
+            <div class="desktop-brand">Qwik</div>
+            
+            <nav class="nav-menu">
+                <a href="{% url 'posts:home' %}" class="nav-item {% if request.resolver_match.app_name == 'posts' %}active{% endif %}">
+                    <i class="fa-solid fa-house"></i> 
+                    <span class="nav-text">Home</span>
+                </a>
+                <a href="#" class="nav-item hide-on-mobile">
+                    <i class="fa-solid fa-magnifying-glass"></i> 
+                    <span class="nav-text">Search</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-regular fa-compass"></i> 
+                    <span class="nav-text">Explore</span>
+                </a>
+                <a href="{% url 'posts:create' %}" class="nav-item {% if request.resolver_match.url_name == 'create' %}active{% endif %}">
+                    <i class="fa-solid fa-plus-circle"></i> 
+                    <span class="nav-text">Create Qwip</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-brands fa-facebook-messenger"></i> 
+                    <span class="nav-text">Messages</span>
+                </a>
+                <a href="#" class="nav-item hide-on-mobile">
+                    <i class="fa-regular fa-heart"></i> 
+                    <span class="nav-text">Notifications</span>
+                </a>
+                <!-- Profile Link -->
+                <a href="{% url 'accounts:profile' user.username %}" class="nav-item {% if request.resolver_match.url_name == 'profile' and request.user.username == profile_user.username %}active{% endif %}">
+                    <i class="fa-regular fa-user"></i> 
+                    <span class="nav-text">Profile</span>
+                </a>
+            </nav>
+
+            <!-- More Menu -->
+            <div class="more-section hide-on-mobile">
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="drop-item"><i class="fa-solid fa-cog"></i> Settings</div>
+                    <div class="drop-item" id="darkModeBtn"><i class="fa-solid fa-moon"></i> Dark Mode</div>
+                    <a href="{% url 'accounts:logout' %}" class="drop-item" style="color: #e0245e;">
+                        <i class="fa-solid fa-sign-out"></i> Logout
+                    </a>
+                </div>
+                <div class="nav-item" id="moreToggle">
+                    <i class="fa-solid fa-bars"></i>
+                    <span class="nav-text">More</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Dynamic Content will be injected here -->
+        {% block content %}{% endblock %}
+
+    </div>
+
+    <!-- JS -->
+    <script>
+        const moreToggle = document.getElementById('moreToggle');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        
+        if (moreToggle) {
+            moreToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdownMenu.classList.toggle('show');
+            });
+            document.addEventListener('click', () => dropdownMenu.classList.remove('show'));
+        }
+
+        const darkModeBtn = document.getElementById('darkModeBtn');
+        if (darkModeBtn) {
+            darkModeBtn.addEventListener('click', () => document.body.classList.toggle('dark-mode'));
+        }
+
+        // Like button functionality (Global)
+        document.body.addEventListener('click', function(e) {
+            const btn = e.target.closest('.like-btn');
+            if (btn) {
+                btn.classList.toggle('liked');
+                const icon = btn.querySelector('i');
+                if(btn.classList.contains('liked')) {
+                    icon.classList.replace('fa-regular', 'fa-solid');
+                } else {
+                    icon.classList.replace('fa-solid', 'fa-regular');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

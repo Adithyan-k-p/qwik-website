@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Qwik{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Specific Home Styles (Right Sidebar items) */
+    .sc-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: 600; }
+    .sc-header a { font-size: 0.8rem; color: var(--accent-solid); }
+
+    .s-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .s-info { display: flex; align-items: center; gap: 10px; }
+    .s-avatar { width: 36px; height: 36px; border-radius: 10px; }
+    .s-details h5 { font-size: 0.9rem; font-weight: 600; }
+    .s-details span { font-size: 0.75rem; color: var(--text-secondary); }
+
+    .follow-mini {
+        width: 30px; height: 30px; border-radius: 50%; background: var(--bg-hover);
+        color: var(--accent-solid); display: grid; place-items: center; transition: 0.2s; border: none; cursor: pointer;
+    }
+    .follow-mini:hover { background: var(--accent-solid); color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+    <!-- CENTER CONTENT -->
+    <main class="main-content">
+        
+        <!-- Loop through Django Posts -->
+        {% for post in posts %}
+            <article class="post">
+                <div class="post-header">
+                    <div class="user-block">
+                        <!-- Profile Image Logic -->
+                        <a href="{% url 'accounts:profile' post.user.username %}">
+                            {% if post.user.profile_image %}
+                                <img src="{{ post.user.profile_image.url }}" class="p-avatar">
+                            {% else %}
+                                <img src="https://ui-avatars.com/api/?name={{ post.user.username }}&background=667eea&color=fff" class="p-avatar">
+                            {% endif %}
+                        </a>
+                        
+                        <div class="p-info">
+                            <!-- Username -->
+                            <h4><a href="{% url 'accounts:profile' post.user.username %}">{{ post.user.username }}</a></h4>
+                            
+                            <!-- Time and Type Indicator -->
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <span>{{ post.created_at|timesince }} ago</span>
+                                
+                                <!-- If Temporary, show Hourglass Icon -->
+                                {% if post.post_type == 'temporary' %}
+                                    <span style="color: #e0245e; font-size: 0.75rem;" title="Temporary Qwip (24h)">
+                                        • <i class="fa-solid fa-hourglass-half"></i>
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-ellipsis" style="cursor: pointer; color: var(--text-secondary);"></i>
+                </div>
+                
+                <!-- Post Image -->
+                {% if post.image %}
+                <div class="post-img-container">
+                    <img src="{{ post.image.url }}" alt="Qwip by {{ post.user.username }}">
+                </div>
+                {% endif %}
+
+                <div class="post-footer">
+                    <div class="action-bar">
+                        <div class="left-actions">
+                            <button class="act-btn like-btn">
+                                <i class="fa-regular fa-heart"></i> 0
+                            </button>
+                            <button class="act-btn">
+                                <i class="fa-regular fa-comment"></i> 0
+                            </button>
+                        </div>
+                        <button class="act-btn">
+                            <i class="fa-regular fa-bookmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Caption -->
+                    {% if post.caption %}
+                    <div class="caption-area">
+                        <span style="font-weight: 600; margin-right: 5px;">
+                            <a href="{% url 'accounts:profile' post.user.username %}">{{ post.user.username }}</a>
+                        </span> 
+                        {{ post.caption }}
+                    </div>
+                    {% endif %}
+                </div>
+            </article>
+            {% empty %}
+            <!-- Empty State -->
+            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                <i class="fa-solid fa-layer-group" style="font-size: 3rem; margin-bottom: 15px; color: #ddd;"></i>
+                <h3>Welcome to Qwik!</h3>
+                <p>No posts yet. Be the first to post something!</p>
+            </div>
+            {% endfor %}
+
+    </main>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside class="right-sidebar">
+        <div class="suggest-card">
+            <div class="sc-header">
+                <span>Suggestions</span>
+                <a href="#">See All</a>
+            </div>
+            <div class="s-item">
+                <div class="s-info">
+                    <img src="https://ui-avatars.com/api/?name=Dana&background=random" class="s-avatar">
+                    <div class="s-details">
+                        <h5>Dana White</h5>
+                        <span>New Account</span>
+                    </div>
+                </div>
+                <button class="follow-mini"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div class="s-item">
+                <div class="s-info">
+                    <img src="https://ui-avatars.com/api/?name=Arthur&background=random" class="s-avatar">
+                    <div class="s-details">
+                        <h5>Arthur Doyle</h5>
+                        <span>Popular</span>
+                    </div>
+                </div>
+                <button class="follow-mini"><i class="fa-solid fa-plus"></i></button>
+            </div>
+        </div>
+    </aside>
+{% endblock %}

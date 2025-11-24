@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Qwik</title>
+    
+    <!-- FONTS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Grand+Hotel&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- ICONS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root {
+            --bg-body: #F0F2F5;
+            --bg-card: #FFFFFF;
+            --text-main: #1c1e21;
+            --text-secondary: #65676B;
+            --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --accent-solid: #667eea;
+            --shadow-card: 0 8px 30px rgba(0,0,0,0.08);
+            --input-bg: #F5F6F8;
+            --border-color: #DADDE1;
+            --error-color: #e74c3c;
+        }
+
+        /* RESET */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; 
+            position: relative;
+        }
+
+        /* --- DECORATIVE BACKGROUND BLOBS --- */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.6;
+        }
+        .blob-1 {
+            width: 400px;
+            height: 400px;
+            background: #667eea;
+            top: -100px;
+            left: -100px;
+        }
+        .blob-2 {
+            width: 300px;
+            height: 300px;
+            background: #764ba2;
+            bottom: -50px;
+            right: -50px;
+        }
+
+        /* --- LOGIN CARD --- */
+        .login-wrapper {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            box-shadow: var(--shadow-card);
+            padding: 40px 30px;
+            text-align: center;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        /* Brand Logo */
+        .brand-logo {
+            font-family: 'Grand Hotel', cursive;
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            display: inline-block;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper i.icon-left {
+            position: absolute;
+            left: 15px;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            z-index: 2;
+        }
+
+        /* Form Input Styling (Matches Django Widget) */
+        .form-input {
+            width: 100%;
+            padding: 14px 15px 14px 45px; /* Space for icon */
+            border: 1px solid transparent;
+            background-color: var(--input-bg);
+            border-radius: 12px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            transition: 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            background-color: #fff;
+            border-color: var(--accent-solid);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Password Toggle */
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            z-index: 2;
+        }
+
+        .forgot-link {
+            display: block;
+            text-align: right;
+            font-size: 0.85rem;
+            color: var(--accent-solid);
+            text-decoration: none;
+            margin-top: -10px;
+            margin-bottom: 25px;
+            font-weight: 500;
+        }
+
+        /* Submit Button */
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 50px;
+            background: var(--accent-gradient);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
+        }
+        
+        .login-btn:active { transform: translateY(0); }
+
+        /* Divider */
+        .divider {
+            margin: 25px 0;
+            position: relative;
+            text-align: center;
+        }
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: var(--border-color);
+            z-index: 1;
+        }
+        .divider span {
+            background: var(--bg-card);
+            padding: 0 10px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Social Login */
+        .social-btns {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .social-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 1.2rem;
+        }
+
+        .social-btn.google { color: #DB4437; }
+        .social-btn.facebook { color: #4267B2; }
+        .social-btn.apple { color: #000; }
+
+        .social-btn:hover {
+            background-color: var(--input-bg);
+            transform: scale(1.05);
+        }
+
+        /* Footer */
+        .card-footer {
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+        .card-footer a {
+            color: var(--accent-solid);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .card-footer a:hover { text-decoration: underline; }
+
+        /* Error Messages */
+        .error-message {
+            color: var(--error-color);
+            background: rgba(231, 76, 60, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        /* Animation */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 480px) {
+            .blob { display: none; }
+            .login-card { padding: 30px 20px; }
+            .brand-logo { font-size: 3rem; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Decorative Background -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            <!-- Logo -->
+            <div class="brand-logo">Qwik</div>
+            <p class="subtitle">Welcome back to your world.</p>
+
+            <!-- Form -->
+            <form action="" method="POST" id="loginForm">
+                {% csrf_token %}
+
+                <!-- Django Error Handling -->
+                {% if form.errors %}
+                    <div class="error-message">
+                        <i class="fa-solid fa-circle-exclamation"></i> 
+                        The username or password you entered is incorrect.
+                    </div>
+                {% endif %}
+                
+                <!-- Email/Username Input -->
+                <div class="form-group">
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-envelope icon-left"></i>
+                        {{ form.username }}
+                    </div>
+                </div>
+
+                <!-- Password Input -->
+                <div class="form-group">
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock icon-left"></i>
+                        {{ form.password }}
+                        <i class="fa-regular fa-eye toggle-password" id="togglePassword"></i>
+                    </div>
+                </div>
+
+                <a href="#" class="forgot-link">Forgot Password?</a>
+
+                <button type="submit" class="login-btn">Log In</button>
+            </form>
+
+            <!-- Divider -->
+            <div class="divider">
+                <span>OR CONTINUE WITH</span>
+            </div>
+
+            <!-- Social Icons (Visual Only for now) -->
+            <div class="social-btns">
+                <button class="social-btn google"><i class="fa-brands fa-google"></i></button>
+                <button class="social-btn facebook"><i class="fa-brands fa-facebook-f"></i></button>
+                <button class="social-btn apple"><i class="fa-brands fa-apple"></i></button>
+            </div>
+
+            <!-- Footer -->
+            <div class="card-footer">
+                Don't have an account? <a href="{% url 'accounts:signup' %}">Sign up</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle Password Visibility
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('passwordInput');
+
+        if(togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function() {
+                // Toggle type
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                // Toggle icon
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+        }
+
+        // Form Submission visual effect
+        const form = document.getElementById('loginForm');
+        const btn = document.querySelector('.login-btn');
+
+        form.addEventListener('submit', (e) => {
+            // NOTE: We REMOVED e.preventDefault() here so Django can actually receive the data!
+            
+            const originalText = btn.innerText;
+            // Loading State visual
+            btn.innerText = 'Logging in...';
+            btn.style.opacity = '0.8';
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,36 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Django ---
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# --- Virtual Environment ---
+# Assuming your venv folder is named 'venv', 'env', or 'qwik_env'
+venv/
+env/
+qwik_env/
+.env
+
+# --- Media Files ---
+# We ignore uploaded user files, but keep the folder structure
+media/
+!media/.gitkeep
+
+# --- Static Files ---
+# If you run collectstatic, ignore the output folder (usually staticfiles)
+staticfiles/
+
+# --- IDEs / Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- OS Generated Files ---
+.DS_Store
+Thumbs.db
