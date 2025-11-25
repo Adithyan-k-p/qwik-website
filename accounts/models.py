@@ -28,3 +28,18 @@ class User(AbstractUser):
 
     class Meta:
         db_table = 'users'
+
+class Follow(models.Model):
+    # 'related_name' allows us to say: user.following.count()
+    follower = models.ForeignKey(User, related_name='following', on_delete=models.CASCADE)
+    
+    # 'related_name' allows us to say: user.followers.count()
+    following = models.ForeignKey(User, related_name='followers', on_delete=models.CASCADE)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('follower', 'following')
+
+    def __str__(self):
+        return f"{self.follower} follows {self.following}"

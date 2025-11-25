@@ -4,156 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - Qwik</title>
-    
-    <!-- FONTS -->
+    <!-- FONTS & ICONS (Same as before) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Grand+Hotel&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
-    <!-- ICONS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- STYLES (Same as before) -->
     <style>
-        /* --- THEME VARIABLES --- */
-        :root {
-            --bg-body: #F0F2F5;
-            --bg-card: #FFFFFF;
-            --text-main: #1c1e21;
-            --text-secondary: #65676B;
-            --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --accent-solid: #667eea;
-            --shadow-card: 0 8px 30px rgba(0,0,0,0.08);
-            --input-bg: #F5F6F8;
-            --border-color: #DADDE1;
-            --error-color: #e74c3c;
-            --success-color: #2ecc71;
-        }
-
-        /* RESET */
+        :root { --bg-body: #F0F2F5; --bg-card: #FFFFFF; --text-main: #1c1e21; --text-secondary: #65676B; --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); --accent-solid: #667eea; --shadow-card: 0 8px 30px rgba(0,0,0,0.08); --input-bg: #F5F6F8; --border-color: #DADDE1; --error-color: #e74c3c; --success-color: #2ecc71; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow-x: hidden;
-            position: relative;
-        }
-
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow-x: hidden; position: relative; }
         a { text-decoration: none; color: inherit; }
-
-        /* --- DECORATIVE BLOBS --- */
-        .blob {
-            position: absolute; border-radius: 50%; filter: blur(80px); z-index: -1; opacity: 0.6;
-        }
+        .blob { position: absolute; border-radius: 50%; filter: blur(80px); z-index: -1; opacity: 0.6; }
         .blob-1 { width: 450px; height: 450px; background: #667eea; top: -150px; right: -100px; }
         .blob-2 { width: 350px; height: 350px; background: #764ba2; bottom: -80px; left: -80px; }
-
-        /* --- SIGNUP CARD --- */
         .signup-wrapper { width: 100%; max-width: 450px; padding: 20px; position: relative; z-index: 10; }
-
-        .signup-card {
-            background: var(--bg-card); border-radius: 20px; box-shadow: var(--shadow-card);
-            padding: 40px 35px; text-align: center; animation: slideUp 0.5s ease-out;
-        }
-
-        .brand-logo {
-            font-family: 'Grand Hotel', cursive; font-size: 3.5rem; margin-bottom: 5px;
-            background: var(--accent-gradient); -webkit-background-clip: text; background-clip: text;
-            -webkit-text-fill-color: transparent; color: transparent; display: inline-block;
-        }
-
+        .signup-card { background: var(--bg-card); border-radius: 20px; box-shadow: var(--shadow-card); padding: 40px 35px; text-align: center; animation: slideUp 0.5s ease-out; }
+        .brand-logo { font-family: 'Grand Hotel', cursive; font-size: 3.5rem; margin-bottom: 5px; background: var(--accent-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; display: inline-block; }
         .subtitle { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 30px; }
-
-        /* Form Elements */
         .form-group { margin-bottom: 12px; text-align: left; position: relative; }
-
         .input-wrapper { position: relative; display: flex; align-items: center; }
-
-        .input-wrapper i.icon-left {
-            position: absolute; left: 15px; color: var(--text-secondary);
-            font-size: 1rem; width: 20px; text-align: center; z-index: 2;
-        }
-
-        .form-input {
-            width: 100%; padding: 14px 15px 14px 48px; border: 1px solid transparent;
-            background-color: var(--input-bg); border-radius: 12px; font-family: 'Poppins', sans-serif;
-            font-size: 0.95rem; color: var(--text-main); transition: 0.3s;
-        }
-
-        .form-input:focus {
-            outline: none; background-color: #fff; border-color: var(--accent-solid);
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-        }
-
+        .input-wrapper i.icon-left { position: absolute; left: 15px; color: var(--text-secondary); font-size: 1rem; width: 20px; text-align: center; z-index: 2; }
+        .form-input { width: 100%; padding: 14px 15px 14px 48px; border: 1px solid transparent; background-color: var(--input-bg); border-radius: 12px; font-family: 'Poppins', sans-serif; font-size: 0.95rem; color: var(--text-main); transition: 0.3s; }
+        .form-input:focus { outline: none; background-color: #fff; border-color: var(--accent-solid); box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1); }
         .form-input.invalid { border-color: var(--error-color); background-color: #fff; }
         .form-input.valid { border-color: var(--success-color); background-color: #fff; }
-
-        /* Field Error Message - MODIFIED */
-        .field-error {
-            display: none; /* Default: INVISIBLE (Takes 0 space) */
-            font-size: 0.75rem; color: var(--error-color);
-            margin-top: 5px; margin-left: 5px;
-            /* removed min-height */
-        }
-
-        /* Password Toggle */
-        .toggle-password {
-            position: absolute; right: 15px; cursor: pointer; color: var(--text-secondary); font-size: 0.9rem; z-index: 2;
-        }
-
-        .signup-btn {
-            width: 100%; padding: 14px; border: none; border-radius: 50px;
-            background: var(--accent-gradient); color: white; font-size: 1rem;
-            font-weight: 600; font-family: 'Poppins', sans-serif; cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
-            margin-bottom: 20px; margin-top: 10px;
-        }
+        .field-error { display: none; font-size: 0.75rem; color: var(--error-color); margin-top: 5px; margin-left: 5px; }
+        .toggle-password { position: absolute; right: 15px; cursor: pointer; color: var(--text-secondary); font-size: 0.9rem; z-index: 2; }
+        .signup-btn { width: 100%; padding: 14px; border: none; border-radius: 50px; background: var(--accent-gradient); color: white; font-size: 1rem; font-weight: 600; font-family: 'Poppins', sans-serif; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3); margin-bottom: 20px; margin-top: 10px; }
         .signup-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4); }
         .signup-btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; transform: none; }
-
-        .terms-group {
-            display: flex; align-items: flex-start; gap: 10px; margin: 20px 0;
-            font-size: 0.85rem; color: var(--text-secondary); text-align: left;
-        }
+        .terms-group { display: flex; align-items: flex-start; gap: 10px; margin: 20px 0; font-size: 0.85rem; color: var(--text-secondary); text-align: left; }
         .terms-group span a { color: var(--accent-solid); font-weight: 500; }
-
-        .card-footer {
-            font-size: 0.9rem; color: var(--text-main); padding-top: 10px;
-            border-top: 1px solid var(--border-color);
-        }
+        .card-footer { font-size: 0.9rem; color: var(--text-main); padding-top: 10px; border-top: 1px solid var(--border-color); }
         .card-footer a { color: var(--accent-solid); font-weight: 600; }
         .card-footer a:hover { text-decoration: underline; }
-
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @media (max-width: 480px) { .blob { display: none; } .signup-card { padding: 30px 20px; } .brand-logo { font-size: 3rem; } }
     </style>
 </head>
 <body>
-
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
 
     <div class="signup-wrapper">
         <div class="signup-card">
-            
             <div class="brand-logo">Qwik</div>
             <p class="subtitle">Join the community today.</p>
 
             <form action="" method="POST" id="signupForm" novalidate>
                 {% csrf_token %}
-
-                {% if form.non_field_errors %}
-                    <div style="color:var(--error-color); font-size:0.85rem; margin-bottom:15px; text-align:left;">
-                        {% for error in form.non_field_errors %}
-                            <p><i class="fa-solid fa-circle-exclamation"></i> {{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
                 
                 <!-- Full Name -->
                 <div class="form-group">
@@ -161,7 +62,7 @@
                         <i class="fa-regular fa-id-card icon-left"></i>
                         {{ form.full_name }}
                     </div>
-                    <!-- Empty by default, populated by Django or JS -->
+                    <!-- Note: No ID needed here, JS finds it via sibling -->
                     <small class="field-error">{% for error in form.full_name.errors %}{{ error }}{% endfor %}</small>
                 </div>
 
@@ -208,163 +109,168 @@
     </div>
 
     <script>
-        const usernameInput = document.getElementById('id_username');
-        const emailInput = document.getElementById('id_email');
-        const passwordInput = document.getElementById('passwordInput');
-        const submitBtn = document.getElementById('submitBtn');
-        
-        const usernameError = document.getElementById('usernameError');
-        const emailError = document.getElementById('emailError');
-        const passwordError = document.getElementById('passwordError');
+        document.addEventListener("DOMContentLoaded", function() {
+            
+            // 1. SELECTORS - MATCHING FORMS.PY IDs
+            // 'full_name' defaults to 'id_full_name' in Django
+            const fullNameInput = document.getElementById('id_full_name'); 
+            const usernameInput = document.getElementById('id_username');
+            const emailInput = document.getElementById('id_email');
+            // 'password1' was manually set to 'passwordInput' in forms.py
+            const passwordInput = document.getElementById('passwordInput'); 
+            
+            const termsCheckbox = document.getElementById('terms');
+            const submitBtn = document.getElementById('submitBtn');
+            const toggleBtn = document.getElementById('togglePassword');
 
-        // Toggle Password Visibility
-        document.getElementById('togglePassword').addEventListener('click', function() {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            this.classList.toggle('fa-eye');
-            this.classList.toggle('fa-eye-slash');
-        });
+            // Select Error Elements
+            const fullNameError = fullNameInput.parentElement.nextElementSibling;
+            const usernameError = document.getElementById('usernameError');
+            const emailError = document.getElementById('emailError');
+            const passwordError = document.getElementById('passwordError');
 
-        let debounceTimer;
+            // 2. HELPER: UPDATE UI
+            function setStatus(input, errorEl, message, isError) {
+                if (message) {
+                    errorEl.style.display = 'block';
+                    errorEl.innerText = message;
+                } else {
+                    errorEl.style.display = 'none';
+                }
 
-        // --- HELPER: Set Status & Toggle Display ---
-        function setStatus(input, element, message, isError) {
-            // 1. If Message is empty, Hide element (Collapse space)
-            if (!message) {
-                element.style.display = 'none';
-                input.classList.remove('invalid');
-                input.classList.remove('valid');
+                if (isError) {
+                    input.classList.add('invalid');
+                    input.classList.remove('valid');
+                    errorEl.style.color = 'var(--error-color)';
+                } else if (input.value.length > 0) {
+                    // Only show valid green state if not empty and not error
+                    input.classList.remove('invalid');
+                    input.classList.add('valid');
+                    if(message) errorEl.style.color = 'var(--success-color)';
+                } else {
+                    // Empty and no error
+                    input.classList.remove('invalid', 'valid');
+                }
+                
                 checkAllValid();
-                return;
             }
 
-            // 2. If Message exists, Show element (Expand space)
-            element.style.display = 'block';
-            element.innerText = message;
+            // 3. MASTER VALIDATION: ENABLE/DISABLE BUTTON
+            function checkAllValid() {
+                const hasErrors = document.querySelectorAll('.form-input.invalid').length > 0;
+                
+                const isFullNameFilled = fullNameInput.value.trim().length > 0;
+                const isUsernameFilled = usernameInput.value.trim().length > 0;
+                const isEmailFilled = emailInput.value.trim().length > 0;
+                const isPasswordFilled = passwordInput.value.trim().length > 0;
+                
+                const isTermsChecked = termsCheckbox.checked;
 
-            if (isError) {
-                input.classList.add('invalid');
-                input.classList.remove('valid');
-                element.style.color = 'var(--error-color)';
-                submitBtn.disabled = true;
-            } else {
-                input.classList.remove('invalid');
-                input.classList.add('valid');
-                element.style.color = 'var(--success-color)';
-                checkAllValid();
-            }
-        }
-
-        function checkAllValid() {
-            if (!document.querySelector('.invalid') && 
-                usernameInput.value && emailInput.value && passwordInput.value &&
-                usernameInput.classList.contains('valid') &&
-                emailInput.classList.contains('valid') &&
-                passwordInput.classList.contains('valid')) {
-                submitBtn.disabled = false;
-            } else {
-                submitBtn.disabled = true;
-            }
-        }
-
-        // --- USERNAME LOGIC ---
-        usernameInput.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            const val = this.value;
-
-            // Clear if empty
-            if (val.length === 0) {
-                setStatus(this, usernameError, "", false); 
-                return;
-            }
-            
-            if (val.length < 6) {
-                setStatus(this, usernameError, "Must be at least 6 characters.", true);
-                return;
-            }
-            if (!/^[a-zA-Z0-9_]+$/.test(val)) {
-                setStatus(this, usernameError, "Only letters, numbers, and underscores.", true);
-                return;
+                if (!hasErrors && isFullNameFilled && isUsernameFilled && isEmailFilled && isPasswordFilled && isTermsChecked) {
+                    submitBtn.disabled = false;
+                } else {
+                    submitBtn.disabled = true;
+                }
             }
 
-            debounceTimer = setTimeout(() => {
-                fetch(`{% url 'accounts:check_username' %}?username=${val}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.is_taken) {
-                            setStatus(this, usernameError, "Username is already taken.", true);
-                        } else {
-                            setStatus(this, usernameError, "Username is available!", false);
-                        }
-                    });
-            }, 500);
+            // 4. FULL NAME LOGIC (No numbers)
+            fullNameInput.addEventListener('input', function() {
+                const val = this.value;
+                // Check if string contains any digit 0-9
+                const hasNumber = /\d/.test(val); 
+
+                if (val.trim().length === 0) {
+                    setStatus(this, fullNameError, "", false);
+                } else if (hasNumber) {
+                    setStatus(this, fullNameError, "Numbers are not allowed.", true);
+                } else if (val.trim().length < 2) {
+                    setStatus(this, fullNameError, "Name is too short.", true);
+                } else {
+                    setStatus(this, fullNameError, "", false); // Valid, hide message
+                }
+            });
+
+            // 5. PASSWORD LOGIC (Instant)
+            passwordInput.addEventListener('input', function() {
+                const val = this.value;
+
+                if (val.length === 0) {
+                    setStatus(this, passwordError, "", false);
+                    return;
+                }
+
+                if (val.length < 8) setStatus(this, passwordError, "At least 8 characters.", true);
+                else if (!/[A-Z]/.test(val)) setStatus(this, passwordError, "Add an uppercase letter.", true);
+                else if (!/[a-z]/.test(val)) setStatus(this, passwordError, "Add a lowercase letter.", true);
+                else if (!/[0-9]/.test(val)) setStatus(this, passwordError, "Add a number.", true);
+                else setStatus(this, passwordError, "Strong password!", false);
+            });
+
+            // 6. PASSWORD TOGGLE
+            toggleBtn.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+
+            // 7. USERNAME (Debounced)
+            let debounceTimer;
+            usernameInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                const val = this.value.trim();
+
+                if (val.length === 0) {
+                    setStatus(this, usernameError, "", false);
+                    return;
+                }
+                if (val.length < 6) {
+                    setStatus(this, usernameError, "Must be at least 6 characters.", true);
+                    return;
+                }
+                if (!/^[a-zA-Z0-9_]+$/.test(val)) {
+                    setStatus(this, usernameError, "Only letters, numbers, _", true);
+                    return;
+                }
+
+                debounceTimer = setTimeout(() => {
+                    fetch(`{% url 'accounts:check_username' %}?username=${val}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.is_taken) setStatus(this, usernameError, "Username taken", true);
+                            else setStatus(this, usernameError, "Available!", false);
+                        });
+                }, 500);
+            });
+
+            // 8. EMAIL (Debounced)
+            emailInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                const val = this.value.trim();
+
+                if (val.length === 0) {
+                    setStatus(this, emailError, "", false);
+                    return;
+                }
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+                    setStatus(this, emailError, "Invalid email format", true);
+                    return;
+                }
+
+                debounceTimer = setTimeout(() => {
+                    fetch(`{% url 'accounts:check_email' %}?email=${val}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.is_taken) setStatus(this, emailError, "Email registered", true);
+                            else setStatus(this, emailError, "", false);
+                        });
+                }, 500);
+            });
+
+            // 9. TERMS & INITIAL CHECK
+            termsCheckbox.addEventListener('change', checkAllValid);
+            checkAllValid();
         });
-
-        // --- EMAIL LOGIC ---
-        emailInput.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            const val = this.value;
-
-            if (val.length === 0) {
-                setStatus(this, emailError, "", false);
-                return;
-            }
-            
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(val)) {
-                setStatus(this, emailError, "Invalid email format.", true);
-                return;
-            }
-
-            debounceTimer = setTimeout(() => {
-                fetch(`{% url 'accounts:check_email' %}?email=${val}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.is_taken) {
-                            setStatus(this, emailError, "Email is already registered.", true);
-                        } else {
-                            setStatus(this, emailError, "", false); // Hide msg but keep green border
-                        }
-                    });
-            }, 500);
-        });
-
-        // --- PASSWORD LOGIC ---
-        passwordInput.addEventListener('input', function() {
-            const val = this.value;
-            
-            if (val.length === 0) {
-                setStatus(this, passwordError, "", false);
-                return;
-            }
-
-            let errorMsg = "";
-            if (val.length < 8 || val.length > 32) {
-                errorMsg = "8-32 characters required.";
-            } else if (!/[A-Z]/.test(val)) {
-                errorMsg = "Add an uppercase letter.";
-            } else if (!/[a-z]/.test(val)) {
-                errorMsg = "Add a lowercase letter.";
-            } else if (!/[0-9]/.test(val)) {
-                errorMsg = "Add a number.";
-            }
-
-            if (errorMsg) {
-                setStatus(this, passwordError, errorMsg, true);
-            } else {
-                setStatus(this, passwordError, "Strong password!", false);
-            }
-        });
-
-        // --- INITIAL CHECK (For Django Server Errors) ---
-        // If the page loads and Django has inserted text into .field-error, allow it to show
-        document.querySelectorAll('.field-error').forEach(el => {
-            if(el.innerText.trim() !== "") {
-                el.style.display = 'block';
-                el.previousElementSibling.querySelector('.form-input').classList.add('invalid');
-            }
-        });
-
     </script>
 </body>
 </html>

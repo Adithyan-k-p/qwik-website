@@ -4,129 +4,92 @@
 
 {% block extra_css %}
 <style>
-    /* --- PROFILE MAIN CONTENT CSS --- */
-    .main-content {
-        width: var(--feed-width);
-        margin: 0 30px;
-        padding-top: 30px;
-        padding-bottom: 80px;
-    }
-
-    /* Profile Header Card */
-    .profile-header {
-        background: var(--bg-card);
-        border-radius: var(--card-radius);
-        padding: 30px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        margin-bottom: 30px;
-        display: flex; align-items: flex-start; gap: 30px;
-    }
-
+    /* --- KEEP YOUR MAIN PROFILE CSS --- */
+    .main-content { width: var(--feed-width); margin: 0 30px; padding-top: 30px; padding-bottom: 80px; position: relative; }
+    .profile-header { background: var(--bg-card); border-radius: var(--card-radius); padding: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 30px; display: flex; align-items: flex-start; gap: 30px; }
     .profile-avatar-container { flex-shrink: 0; }
-    .profile-avatar {
-        width: 150px; height: 150px;
-        border-radius: 50%;
-        border: 4px solid var(--bg-body);
-        background: var(--accent-gradient);
-        padding: 3px; 
-    }
+    .profile-avatar { width: 150px; height: 150px; border-radius: 50%; border: 4px solid var(--bg-body); background: var(--accent-gradient); padding: 3px; }
     .profile-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #fff; }
-
     .profile-info { flex-grow: 1; }
     .profile-top-row { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
     .username { font-size: 1.5rem; font-weight: 300; }
     
-    .edit-btn {
-        background-color: var(--bg-hover); color: var(--text-main);
-        padding: 8px 16px; border-radius: 8px; font-weight: 600;
-        font-size: 0.9rem; border: none; cursor: pointer; transition: 0.2s; text-decoration: none;
-    }
-    .edit-btn:hover { background-color: #d8dadf; }
+    /* BUTTONS */
+    .edit-btn { background-color: var(--bg-hover); color: var(--text-main); padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; transition: 0.2s; text-decoration: none; display: inline-block; }
+    .btn-primary { background: var(--accent-gradient); color: white; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; text-decoration: none; display: inline-block; }
+    .btn-secondary { background: var(--bg-hover); color: var(--text-main); border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; text-decoration: none; display: inline-block; }
 
+    /* STATS */
     .profile-stats { display: flex; gap: 30px; margin-bottom: 20px; list-style: none; }
     .profile-stats li { font-size: 1rem; }
     .profile-stats strong { font-weight: 600; color: var(--text-main); }
+    .stat-clickable { cursor: pointer; transition: color 0.2s; border-bottom: 1px solid transparent; }
+    .stat-clickable:hover { color: var(--accent-solid); border-bottom: 1px solid var(--accent-solid); }
+
     .profile-bio h4 { font-size: 1rem; font-weight: 600; margin-bottom: 5px; }
     .profile-bio p { font-size: 0.95rem; line-height: 1.5; color: var(--text-main); }
-    .profile-bio a { color: var(--accent-solid); font-weight: 500; }
 
-    /* Posts Divider & Grid */
-    .posts-divider {
-        border-top: 1px solid #dadde1;
-        display: flex; justify-content: center; gap: 50px; margin-bottom: 20px;
+    /* --- MODAL CSS --- */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 9999; display: none; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+    .modal-overlay.active { display: flex !important; }
+    .modal-card { background: var(--bg-card); width: 400px; max-width: 90%; height: 600px; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: modalPop 0.2s ease-out; }
+    @keyframes modalPop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-header { padding: 15px 20px; border-bottom: 1px solid #dadde1; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .modal-header h3 { font-size: 1.1rem; font-weight: 700; margin: 0; }
+    .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); line-height: 1; }
+    .modal-search-container { padding: 10px 20px; border-bottom: 1px solid #f0f0f0; background: var(--bg-card); }
+    .modal-search-input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #dadde1; background: var(--bg-body); font-size: 0.9rem; outline: none; }
+    .modal-search-input:focus { border-color: var(--accent-solid); }
+    .modal-body { overflow-y: auto; padding: 0; flex-grow: 1; }
+    .user-list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; transition: background 0.2s; }
+    .user-list-item:hover { background: var(--bg-hover); }
+    .u-info { display: flex; align-items: center; gap: 12px; }
+    .u-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+    .u-names { display: flex; flex-direction: column; line-height: 1.2; }
+    .u-names strong { font-size: 0.9rem; color: var(--text-main); }
+    .u-names span { font-size: 0.8rem; color: var(--text-secondary); }
+    .u-names a { text-decoration: none; color: inherit; }
+    .follow-list-btn { padding: 6px 16px; border-radius: 6px; font-weight: 600; font-size: 0.85rem; text-decoration: none; white-space: nowrap;}
+    .flb-primary { background: var(--accent-solid); color: white; }
+    .flb-secondary { background: #dadde1; color: var(--text-main); }
+    .btn-remove { background: transparent; border: 1px solid #dadde1; color: var(--text-main); padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.8rem; text-decoration: none; }
+    .btn-remove:hover { border-color: #e0245e; color: #e0245e; }
+
+    /* Button styles for AJAX interaction */
+    .modal-follow-btn {
+        padding: 6px 16px; border-radius: 6px; font-weight: 600; font-size: 0.85rem; 
+        cursor: pointer; border: none; transition: 0.2s;
     }
-    .tab-item {
-        padding-top: 15px; font-size: 0.85rem; font-weight: 600;
-        color: var(--text-secondary); cursor: pointer; letter-spacing: 1px;
-        text-transform: uppercase; border-top: 1px solid transparent;
-        margin-top: -1px; display: flex; align-items: center; gap: 6px;
-    }
+    .mfb-following { background: #dadde1; color: var(--text-main); }
+    /* Hover effect for Unfollow */
+    .mfb-following:hover { background: #e0245e; color: white; }
+    .mfb-following:hover::after { content: ""; } /* Optional text change logic handled in JS */
+
+    .mfb-follow { background: var(--accent-solid); color: white; }
+    .mfb-follow:hover { opacity: 0.9; }
+
+    /* LAYOUT */
+    .posts-divider { border-top: 1px solid #dadde1; display: flex; justify-content: center; gap: 50px; margin-bottom: 20px; }
+    .tab-item { padding-top: 15px; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); cursor: pointer; letter-spacing: 1px; text-transform: uppercase; border-top: 1px solid transparent; margin-top: -1px; display: flex; align-items: center; gap: 6px; }
     .tab-item.active { color: var(--text-main); border-top: 1px solid var(--text-main); }
-
     .posts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
     .grid-item { position: relative; width: 100%; aspect-ratio: 1 / 1; cursor: pointer; border-radius: 8px; overflow: hidden; background: #eee; }
     .grid-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
-    .grid-overlay {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center;
-        opacity: 0; transition: opacity 0.2s; gap: 20px;
-        color: #fff; font-weight: 600; font-size: 1.1rem;
-    }
+    .grid-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s; gap: 20px; color: #fff; font-weight: 600; font-size: 1.1rem; }
     .grid-item:hover .grid-overlay { opacity: 1; }
-    .grid-item:hover img { transform: scale(1.05); }
+    
+    .right-sidebar { width: 300px; padding-top: 30px; position: sticky; top: 0; height: 100vh; }
 
-    /* --- RIGHT SIDEBAR CSS (Added specifically for Profile) --- */
-    .right-sidebar {
-        width: 300px; padding-top: 30px; position: sticky; top: 0; height: 100vh;
-    }
-    .suggest-card {
-        background: var(--bg-card); padding: 20px; border-radius: var(--card-radius);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .sc-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: 600; }
-    .sc-header a { font-size: 0.8rem; color: var(--accent-solid); }
-
-    .s-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-    .s-info { display: flex; align-items: center; gap: 10px; }
-    .s-avatar { width: 36px; height: 36px; border-radius: 10px; }
-    .s-details h5 { font-size: 0.9rem; font-weight: 600; }
-    .s-details span { font-size: 0.75rem; color: var(--text-secondary); }
-
-    .follow-mini {
-        width: 30px; height: 30px; border-radius: 50%; background: var(--bg-hover);
-        color: var(--accent-solid); display: grid; place-items: center; transition: 0.2s; border: none; cursor: pointer;
-    }
-    .follow-mini:hover { background: var(--accent-solid); color: #fff; }
-
-    /* --- RESPONSIVE --- */
-    @media (max-width: 1100px) {
-        .right-sidebar { display: none; }
-        .main-content { margin: 0 auto; }
-    }
     @media (max-width: 900px) {
         .profile-header { flex-direction: column; align-items: center; text-align: center; }
-        .profile-top-row { flex-direction: column; gap: 10px; }
         .profile-stats { justify-content: center; }
-        .profile-info { width: 100%; }
-    }
-    @media (max-width: 600px) {
-        .main-content { width: 100%; margin: 0; padding-top: calc(var(--header-height-mobile) + 15px); }
-        .profile-header { border-radius: 0; box-shadow: none; padding: 20px; background: transparent; margin-bottom: 0; }
-        .profile-avatar { width: 80px; height: 80px; }
-        .profile-top-row { flex-direction: row; margin-bottom: 15px; }
-        .username { font-size: 1.2rem; }
-        .edit-btn { padding: 6px 12px; font-size: 0.8rem; }
-        .profile-stats { gap: 15px; font-size: 0.9rem; border-top: 1px solid #dadde1; padding-top: 15px; justify-content: space-around; width: 100%;}
-        .profile-bio { text-align: left; padding: 0 10px; }
-        .posts-grid { gap: 3px; } 
-        .grid-item { border-radius: 0; }
+        .right-sidebar { display: none; }
+        .main-content { margin: 0 auto; width: 100%; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-
-    <!-- 1. LEFT COLUMN: MAIN PROFILE CONTENT -->
     <main class="main-content">
         <!-- User Info Card -->
         <div class="profile-header">
@@ -146,13 +109,33 @@
                     {% if request.user == profile_user %}
                         <a href="{% url 'accounts:edit_profile' %}" class="edit-btn">Edit Profile</a>
                         <i class="fa-solid fa-gear hide-on-mobile" style="font-size: 1.2rem; cursor: pointer; margin-left: 10px;"></i>
+                    {% else %}
+                        <!-- This is the MAIN Follow button (Reloads page) -->
+                        <a href="{% url 'accounts:follow_user' profile_user.username %}"
+                           class="{% if is_following %}btn-secondary{% else %}btn-primary{% endif %}">
+                            {% if is_following %}Following{% else %}Follow{% endif %}
+                        </a>
                     {% endif %}
                 </div>
 
                 <ul class="profile-stats">
                     <li><strong>{{ posts.count }}</strong> Posts</li>
-                    <li><strong>0</strong> Followers</li>
-                    <li><strong>0</strong> Following</li>
+                    
+                    <li class="stat-clickable" onclick="openModal('followersModal')">
+                        <strong>{{ followers_count }}</strong> Followers
+                    </li>
+
+                    <li class="stat-clickable" onclick="openModal('followingModal')">
+                        <!-- 
+                            LOGIC: We only add the ID 'myFollowingCount' if the user is looking at THEIR OWN profile.
+                            If I am looking at someone else's profile, the number shouldn't change when I follow a suggestion.
+                        -->
+                        {% if request.user == profile_user %}
+                            <strong id="myFollowingCount">{{ following_count }}</strong> Following
+                        {% else %}
+                            <strong>{{ following_count }}</strong> Following
+                        {% endif %}
+                    </li>
                 </ul>
 
                 <div class="profile-bio">
@@ -163,36 +146,20 @@
                             {{ profile_user.username }}
                         {% endif %}
                     </h4>
-                    <p>
-                        {% if profile_user.bio %}
-                            {{ profile_user.bio|linebreaksbr }}
-                        {% else %}
-                            <span style="color:var(--text-secondary)">No bio yet.</span>
-                        {% endif %}
-                    </p>
+                    <p>{{ profile_user.bio|default:"No bio yet."|linebreaksbr }}</p>
                 </div>
             </div>
         </div>
 
-        <!-- Tabs -->
         <div class="posts-divider">
             <div class="tab-item active"><i class="fa-solid fa-table-cells"></i> Posts</div>
-            <!-- <div class="tab-item"><i class="fa-regular fa-bookmark"></i> Saved</div>
-            <div class="tab-item"><i class="fa-solid fa-user-tag"></i> Tagged</div> -->
         </div>
 
-        <!-- Grid -->
         <div class="posts-grid">
             {% for post in posts %}
                 <div class="grid-item">
-                    {% if post.image %}
-                        <img src="{{ post.image.url }}">
-                    {% else %}
-                        <div style="width:100%; height:100%; background:#eee;"></div>
-                    {% endif %}
-                    <div class="grid-overlay">
-                        <i class="fa-solid fa-heart"></i> 0
-                    </div>
+                    {% if post.image %}<img src="{{ post.image.url }}">{% else %}<div style="width:100%; height:100%; background:#eee;"></div>{% endif %}
+                    <div class="grid-overlay"><i class="fa-solid fa-heart"></i> {{ post.likes.count }}</div>
                 </div>
             {% empty %}
                 <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-secondary);">
@@ -203,40 +170,234 @@
         </div>
     </main>
 
-    <!-- 2. RIGHT COLUMN: SIDEBAR -->
+    <!-- RIGHT SIDEBAR (Uses the common Include) -->
     <aside class="right-sidebar">
-        <div class="suggest-card">
-            <div class="sc-header">
-                <span>Suggestions</span>
-                <a href="#">See All</a>
-            </div>
-            <!-- Suggestion Item 1 -->
-            <div class="s-item">
-                <div class="s-info">
-                    <img src="https://ui-avatars.com/api/?name=Dana&background=random" class="s-avatar">
-                    <div class="s-details">
-                        <h5>Dana White</h5>
-                        <span>New Account</span>
-                    </div>
-                </div>
-                <button class="follow-mini"><i class="fa-solid fa-plus"></i></button>
-            </div>
-            <!-- Suggestion Item 2 -->
-            <div class="s-item">
-                <div class="s-info">
-                    <img src="https://ui-avatars.com/api/?name=Arthur&background=random" class="s-avatar">
-                    <div class="s-details">
-                        <h5>Arthur Doyle</h5>
-                        <span>Popular</span>
-                    </div>
-                </div>
-                <button class="follow-mini"><i class="fa-solid fa-plus"></i></button>
-            </div>
-        </div>
-        
-        <div style="margin-top:20px; font-size:0.75rem; color:#aaa; text-align:center;">
-            © 2025 QWIK
-        </div>
+        {% include 'includes/right_sidebar.html' %}
     </aside>
 
+    <!-- ================= MODALS ================= -->
+    <!-- 1. FOLLOWERS MODAL -->
+    <div id="followersModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Followers</h3>
+                <button class="close-modal" onclick="closeModal('followersModal')">&times;</button>
+            </div>
+            <div class="modal-search-container">
+                <input type="text" class="modal-search-input" placeholder="Search followers..." onkeyup="filterList('followersList', this.value)">
+            </div>
+            <div class="modal-body" id="followersList">
+                {% for rel in followers_relations %}
+                <div class="user-list-item" data-username="{{ rel.follower.username|lower }}">
+                    <div class="u-info">
+                        <a href="{% url 'accounts:profile' rel.follower.username %}">
+                            {% if rel.follower.profile_image %}
+                                <img src="{{ rel.follower.profile_image.url }}" class="u-avatar">
+                            {% else %}
+                                <img src="https://ui-avatars.com/api/?name={{ rel.follower.username }}" class="u-avatar">
+                            {% endif %}
+                        </a>
+                        <div class="u-names">
+                            <a href="{% url 'accounts:profile' rel.follower.username %}"><strong>{{ rel.follower.username }}</strong></a>
+                            <span>{{ rel.follower.first_name }} {{ rel.follower.last_name }}</span>
+                        </div>
+                    </div>
+                    {% if request.user == profile_user %}
+                        <a href="{% url 'accounts:remove_follower' rel.follower.username %}?next={{ request.path }}" class="btn-remove">Remove</a>
+                    {% elif request.user != rel.follower %}
+                        <!-- Converts to AJAX Button -->
+                        <button class="modal-follow-btn {% if rel.follower.id in my_following_ids %}mfb-following{% else %}mfb-follow{% endif %}"
+                                data-username="{{ rel.follower.username }}"
+                                onclick="handleModalFollowToggle(this)">
+                            {% if rel.follower.id in my_following_ids %}Following{% else %}Follow{% endif %}
+                        </button>
+                    {% endif %}
+                </div>
+                {% empty %}
+                    <div style="text-align:center; padding:30px; color:var(--text-secondary);">No followers found.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. FOLLOWING MODAL (Updated for dynamic injection) -->
+    <div id="followingModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Following</h3>
+                <button class="close-modal" onclick="closeModal('followingModal')">&times;</button>
+            </div>
+            <div class="modal-search-container">
+                <input type="text" class="modal-search-input" placeholder="Search following..." onkeyup="filterList('followingList', this.value)">
+            </div>
+            
+            <!-- ADD ID 'followingList' HERE -->
+            <div class="modal-body" id="followingList">
+                {% for rel in following_relations %}
+                <div class="user-list-item" id="following-row-{{ rel.following.username }}" data-username="{{ rel.following.username|lower }}">
+                    <div class="u-info">
+                        <a href="{% url 'accounts:profile' rel.following.username %}">
+                            {% if rel.following.profile_image %}
+                                <img src="{{ rel.following.profile_image.url }}" class="u-avatar">
+                            {% else %}
+                                <img src="https://ui-avatars.com/api/?name={{ rel.following.username }}" class="u-avatar">
+                            {% endif %}
+                        </a>
+                        <div class="u-names">
+                            <a href="{% url 'accounts:profile' rel.following.username %}"><strong>{{ rel.following.username }}</strong></a>
+                            <span>{{ rel.following.first_name }} {{ rel.following.last_name }}</span>
+                        </div>
+                    </div>
+
+                    {% if request.user != rel.following %}
+                        <!-- 
+                           AJAX BUTTON:
+                           If I am looking at MY OWN profile, these are people I follow.
+                           If I look at OTHER profile, I might follow them or not.
+                        -->
+                        <button class="modal-follow-btn {% if rel.following.id in my_following_ids %}mfb-following{% else %}mfb-follow{% endif %}"
+                                data-username="{{ rel.following.username }}"
+                                onclick="handleModalFollowToggle(this)">
+                            {% if rel.following.id in my_following_ids %}Following{% else %}Follow{% endif %}
+                        </button>
+                    {% endif %}
+                </div>
+                {% empty %}
+                    <div style="text-align:center; padding:30px; color:var(--text-secondary);">Not following anyone yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 
+       ONLY MODAL AND SEARCH SCRIPTS HERE.
+       SIDEBAR SCRIPT IS REMOVED (IT IS NOW IN THE INCLUDE)
+    -->
+    <script>
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden'; 
+                const input = modal.querySelector('input');
+                if(input) { input.value = ''; filterList(modal.querySelector('.modal-body').id, ''); }
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+                document.body.style.overflow = 'auto'; 
+                const url = new URL(window.location);
+                url.searchParams.delete('modal');
+                window.history.replaceState({}, '', url);
+            }
+        }
+
+        function filterList(listId, query) {
+            query = query.toLowerCase();
+            const list = document.getElementById(listId);
+            const items = list.getElementsByClassName('user-list-item');
+            for (let i = 0; i < items.length; i++) {
+                const username = items[i].getAttribute('data-username');
+                if (username.includes(query)) items[i].style.display = "flex";
+                else items[i].style.display = "none";
+            }
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                event.target.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        function handleModalFollowToggle(btn) {
+            const username = btn.getAttribute('data-username');
+            const url = `/accounts/follow/${username}/`; // Construct URL manually or use data attr
+
+            fetch(url, {
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Update Button State
+                if (data.status === 'followed') {
+                    btn.textContent = 'Following';
+                    btn.classList.remove('mfb-follow');
+                    btn.classList.add('mfb-following');
+                } else if (data.status === 'unfollowed') {
+                    // "Give a chance to follow again" -> Just turn blue, don't remove row
+                    btn.textContent = 'Follow';
+                    btn.classList.remove('mfb-following');
+                    btn.classList.add('mfb-follow');
+                }
+                
+                // Update Count if on my profile
+                const countSpan = document.getElementById('myFollowingCount');
+                if (countSpan && "{{ request.user.username }}" === "{{ profile_user.username }}") {
+                    countSpan.innerText = data.new_following_count;
+                }
+            })
+            .catch(err => console.error(err));
+        }
+
+        // --- 2. HANDLE INJECTION FROM SIDEBAR (Called by right_sidebar.html) ---
+        // This function adds a new row to the #followingList when Sidebar follow happens
+        window.injectIntoFollowingList = function(userData) {
+            // Only inject if we are viewing OUR OWN profile
+            if ("{{ request.user.username }}" !== "{{ profile_user.username }}") return;
+
+            const listContainer = document.getElementById('followingList');
+            const noMsg = document.getElementById('no-following-msg');
+            if (noMsg) noMsg.style.display = 'none';
+
+            // Check if row already exists (e.g. if we unfollowed then re-followed)
+            const existingRow = document.getElementById(`following-row-${userData.username}`);
+            
+            if (existingRow) {
+                // Just reset the button to "Following"
+                const btn = existingRow.querySelector('.modal-follow-btn');
+                btn.textContent = 'Following';
+                btn.classList.remove('mfb-follow');
+                btn.classList.add('mfb-following');
+                existingRow.style.display = 'flex'; // Ensure visible
+            } else {
+                // Create New Row HTML
+                const newRow = document.createElement('div');
+                newRow.className = 'user-list-item';
+                newRow.id = `following-row-${userData.username}`;
+                newRow.setAttribute('data-username', userData.username.toLowerCase());
+                
+                newRow.innerHTML = `
+                    <div class="u-info">
+                        <a href="${userData.profile_url}">
+                            <img src="${userData.avatar_url}" class="u-avatar">
+                        </a>
+                        <div class="u-names">
+                            <a href="${userData.profile_url}"><strong>${userData.username}</strong></a>
+                            <span>${userData.full_name}</span>
+                        </div>
+                    </div>
+                    <button class="modal-follow-btn mfb-following"
+                            data-username="${userData.username}"
+                            onclick="handleModalFollowToggle(this)">
+                        Following
+                    </button>
+                `;
+                
+                // Prepend or Append
+                listContainer.prepend(newRow);
+            }
+        };
+
+        {% comment %} document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const modalParam = urlParams.get('modal');
+            if (modalParam === 'followers') openModal('followersModal');
+            else if (modalParam === 'following') openModal('followingModal');
+        }); {% endcomment %}
+    </script>
 {% endblock %}
