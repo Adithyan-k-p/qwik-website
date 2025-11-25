@@ -1,0 +1,108 @@
+<style>
+    /* Sidebar Specific CSS */
+    .suggest-card { 
+        background: var(--bg-card); 
+        padding: 20px; 
+        border-radius: var(--card-radius); 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+    }
+    .sc-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: 600; }
+    
+    .s-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .s-info { display: flex; align-items: center; gap: 10px; }
+    .s-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+    .s-details h5 { font-size: 0.9rem; font-weight: 600; margin: 0; }
+    .s-details span { font-size: 0.75rem; color: var(--text-secondary); }
+    .s-details a { text-decoration: none; color: inherit; }
+
+    /* Button Styles */
+    .follow-mini {
+        width: 30px; height: 30px; border-radius: 50%; background: var(--bg-hover);
+        color: var(--accent-solid); display: grid; place-items: center; transition: 0.2s; border: none; cursor: pointer;
+    }
+    .follow-mini:hover { background: var(--accent-solid); color: #fff; }
+
+    /* Active State (Following) */
+    .follow-mini.active {
+        background: var(--text-secondary); 
+        color: #fff;
+    }
+    .follow-mini.active:hover {
+        background: #e0245e; /* Red warning on hover */
+    }
+</style>
+
+<div class="suggest-card">
+    <div class="sc-header"><span>Suggestions</span></div>
+    {% for suggest in suggestions %}
+    <div class="s-item">
+        <div class="s-info">
+            <a href="{% url 'accounts:profile' suggest.username %}">
+                {% if suggest.profile_image %}
+                    <img src="{{ suggest.profile_image.url }}" class="s-avatar">
+                {% else %}
+                    <img src="https://ui-avatars.com/api/?name={{ suggest.username }}" class="s-avatar">
+                {% endif %}
+            </a>
+            <div class="s-details">
+                <h5><a href="{% url 'accounts:profile' suggest.username %}">{{ suggest.username }}</a></h5>
+                <span>Suggested for you</span>
+            </div>
+        </div>
+        <button class="follow-mini sidebar-btn" data-url="{% url 'accounts:follow_user' suggest.username %}">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+    </div>
+    {% empty %}
+        <div style="font-size:0.8rem; color:var(--text-secondary); text-align:center;">No suggestions.</div>
+    {% endfor %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.sidebarLogicLoaded) return;
+        window.sidebarLogicLoaded = true;
+
+        const sidebarBtns = document.querySelectorAll('.sidebar-btn');
+        
+        sidebarBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const url = this.getAttribute('data-url');
+                
+                fetch(url, {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const icon = this.querySelector('i');
+                    
+                    if (data.status === 'followed') {
+                        // 1. Update Sidebar Visuals
+                        this.classList.add('active');
+                        icon.classList.remove('fa-plus');
+                        icon.classList.add('fa-check');
+
+                        // 2. DYNAMICALLY INJECT INTO PROFILE LIST
+                        // Check if the function exists (it only exists on profile.html)
+                        if (typeof window.injectIntoFollowingList === "function") {
+                            window.injectIntoFollowingList(data);
+                        }
+
+                    } else if (data.status === 'unfollowed') {
+                        this.classList.remove('active');
+                        icon.classList.remove('fa-check');
+                        icon.classList.add('fa-plus');
+                    }
+                    
+                    // 3. Update Counts
+                    const countSpan = document.getElementById('myFollowingCount');
+                    if (countSpan && data.new_following_count !== undefined) {
+                         countSpan.innerText = data.new_following_count;
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+    });
+</script>

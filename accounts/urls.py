@@ -15,4 +15,6 @@ urlpatterns = [
 
     # 2. The Shortcut (if someone visits /accounts/profile/, redirect them to their named profile)
     path('profile/', views.current_profile_redirect, name='current_profile'),
+    path('follow/<str:username>/', views.follow_user_view, name='follow_user'),
+    path('remove-follower/<str:username>/', views.remove_follower_view, name='remove_follower'),
 ]

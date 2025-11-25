@@ -3,8 +3,8 @@ from django.contrib.auth import login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from .forms import SignUpForm, LoginForm, EditProfileForm
-from .models import User
-from posts.models import Post 
+from .models import User, Follow
+from posts.models import Post
 from django.views.decorators.cache import never_cache
 import os
 
@@ -25,22 +25,6 @@ def check_email(request):
         data['is_taken'] = True
         
     return JsonResponse(data)
-
-
-# def check_username(request):
-#     username = request.GET.get('username', None)
-#     current_user = request.user.username
-    
-#     data = {
-#         'is_taken': False
-#     }
-    
-#     # If user types their own name, it's not "taken"
-#     if username and username.lower() != current_user.lower():
-#         if User.objects.filter(username__iexact=username).exists():
-#             data['is_taken'] = True
-            
-#     return JsonResponse(data)
 
 @never_cache
 def signup_view(request):
@@ -80,12 +64,45 @@ def logout_view(request):
 def profile_view(request, username):
     profile_user = get_object_or_404(User, username=username)
     
-    # --- FIX HERE: Change 'author' to 'user' ---
-    user_posts = Post.objects.filter(user=profile_user).order_by('-created_at')
+    # 1. Get Posts
+    posts = Post.objects.filter(user=profile_user, is_active=True).order_by('-created_at')
+
+    # 2. Main Follow Button Logic (Top of profile)
+    is_following = False
+    if request.user.is_authenticated and request.user != profile_user:
+        is_following = Follow.objects.filter(follower=request.user, following=profile_user).exists()
+
+    # 3. Get Counts
+    followers_count = Follow.objects.filter(following=profile_user).count()
+    following_count = Follow.objects.filter(follower=profile_user).count()
+
+    # 4. Get Actual Lists (User Objects) for the Modals
+    # We get the 'Follow' objects, then we can access .follower or .following in template
+    followers_relations = Follow.objects.filter(following=profile_user).select_related('follower')
+    following_relations = Follow.objects.filter(follower=profile_user).select_related('following')
+
+    # 5. List of User IDs that the *Logged-in User* is currently following
+    # This is needed to decide whether to show "Follow" or "Following" next to names in the lists
+    my_following_ids = Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
     
+    # 6. SUGGESTIONS
+    suggestions = User.objects.exclude(id=request.user.id) \
+                              .exclude(id__in=my_following_ids) \
+                              .exclude(is_superuser=True) \
+                              .exclude(is_staff=True) \
+                              .order_by('?')[:5]
+
     context = {
         'profile_user': profile_user,
-        'posts': user_posts,
+        'posts': posts,
+        'is_following': is_following,
+        'followers_count': followers_count,
+        'following_count': following_count,
+        
+        'followers_relations': followers_relations, 
+        'following_relations': following_relations,
+        'my_following_ids': my_following_ids, 
+        'suggestions': suggestions,
     }
     return render(request, 'accounts/profile.html', context)
 
@@ -132,3 +149,65 @@ def edit_profile_view(request):
         form = EditProfileForm(instance=request.user)
 
     return render(request, 'accounts/edit_profile.html', {'form': form})
+
+@login_required
+def follow_user_view(request, username):
+    user_to_toggle = get_object_or_404(User, username=username)
+    status = ''
+    
+    if request.user != user_to_toggle:
+        follow_record = Follow.objects.filter(follower=request.user, following=user_to_toggle).first()
+        if follow_record:
+            follow_record.delete()
+            status = 'unfollowed'
+        else:
+            Follow.objects.create(follower=request.user, following=user_to_toggle)
+            status = 'followed'
+
+    # --- AJAX RESPONSE ---
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        new_following_count = Follow.objects.filter(follower=request.user).count()
+        
+        # Prepare data for Dynamic List Injection
+        avatar_url = "https://ui-avatars.com/api/?name=" + user_to_toggle.username
+        if user_to_toggle.profile_image:
+            avatar_url = user_to_toggle.profile_image.url
+            
+        full_name = f"{user_to_toggle.first_name} {user_to_toggle.last_name}".strip()
+        
+        return JsonResponse({
+            'status': status, 
+            'new_following_count': new_following_count,
+            'username': user_to_toggle.username,
+            'full_name': full_name,
+            'avatar_url': avatar_url,
+            'profile_url': f"/accounts/profile/{user_to_toggle.username}/" # Hardcoded url pattern for JS
+        })
+
+    # Standard Redirect
+    next_url = request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
+    return redirect('accounts:profile', username=username)
+
+
+@login_required
+def remove_follower_view(request, username):
+    user_to_remove = get_object_or_404(User, username=username)
+    
+    # Check if a follow record exists where:
+    # Follower = user_to_remove
+    # Following = request.user (Me)
+    follow_record = Follow.objects.filter(follower=user_to_remove, following=request.user).first()
+    
+    if follow_record:
+        follow_record.delete()
+
+    next_url = request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
+
+    return redirect('accounts:profile', username=request.user.username)

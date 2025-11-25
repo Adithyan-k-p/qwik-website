@@ -13,10 +13,14 @@ alpha_only = RegexValidator(r'^[a-zA-Z]*$', 'Only letters are allowed (no number
 # Validator: Letters and Spaces - For Last Name
 alpha_space = RegexValidator(r'^[a-zA-Z\s]*$', 'Only letters and spaces are allowed.')
 
-username_regex = RegexValidator(
-    r'^[a-zA-Z0-9_]*$', 
-    'Username can only contain letters, numbers, and underscores.'
-)
+# username_regex = RegexValidator(
+#     r'^[a-zA-Z0-9_]*$', 
+#     'Username can only contain letters, numbers, and underscores.'
+# )
+
+def username_regex(value):
+    if not re.match(r'^[a-zA-Z0-9_]+$', value):
+        raise ValidationError('Username can only contain letters, numbers, and underscores.')
 
 def validate_password_complexity(value):
     if len(value) < 8 or len(value) > 32:
@@ -34,24 +38,21 @@ class SignUpForm(forms.ModelForm):
         required=True
     )
     
-    # Username with new validators
     username = forms.CharField(
         validators=[username_regex, MinLengthValidator(6)],
         widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Username', 'id': 'id_username'})
     )
 
-    # Email
     email = forms.EmailField(
         widget=forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'Email Address', 'id': 'id_email'})
     )
 
-    # Password with new validator
     password1 = forms.CharField(
-        validators=[validate_password_complexity],
+        validators=[validate_password_complexity, MinLengthValidator(8)],
         widget=forms.PasswordInput(attrs={
             'class': 'form-input', 
             'placeholder': 'Password',
-            'id': 'passwordInput'
+            'id': 'passwordInput' # <--- MATCHES JS BELOW
         })
     )
 
@@ -62,15 +63,17 @@ class SignUpForm(forms.ModelForm):
     # --- CLEANING ---
 
     def clean_full_name(self):
-        # Safety check for None
         name = self.cleaned_data.get('full_name')
         if name:
-            return name
+            # Check for digits in the name
+            if any(char.isdigit() for char in name):
+                raise ValidationError("Name cannot contain numbers.")
+            if len(name) < 2:
+                raise ValidationError("Name is too short.")
         return name
 
     def clean_username(self):
         username = self.cleaned_data.get('username')
-        # FIX: Check if username exists before calling .lower()
         if username:
             username = username.lower()
             if User.objects.filter(username=username).exists():
@@ -80,7 +83,6 @@ class SignUpForm(forms.ModelForm):
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
-        # FIX: Check if email exists before calling .lower()
         if email:
             email = email.lower()
             if User.objects.filter(email=email).exists():
