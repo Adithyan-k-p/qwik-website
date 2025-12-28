@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.db.models import Q, Count
 from .forms import SignUpForm, LoginForm, EditProfileForm
 from .models import User, Follow
 from posts.models import Post
@@ -65,7 +66,11 @@ def profile_view(request, username):
     profile_user = get_object_or_404(User, username=username)
     
     # 1. Get Posts
-    posts = Post.objects.filter(user=profile_user, is_active=True).order_by('-created_at')
+    posts = Post.objects.filter(user=profile_user, is_active=True)\
+                .annotate(
+                    like_count_attr=Count('likes', distinct=True),
+                    comment_count_attr=Count('comments', distinct=True)
+                ).order_by('-created_at')
 
     # 2. Main Follow Button Logic (Top of profile)
     is_following = False
@@ -211,3 +216,26 @@ def remove_follower_view(request, username):
         return redirect(next_url)
 
     return redirect('accounts:profile', username=request.user.username)
+
+@login_required
+def search_users_ajax(request):
+    query = request.GET.get('q', '').strip()
+    if len(query) < 1:
+        return JsonResponse({'users': []})
+
+    # Search users, exclude admins/staff and yourself
+    users = User.objects.filter(
+        Q(username__icontains=query) | 
+        Q(first_name__icontains=query) | 
+        Q(last_name__icontains=query)
+    ).exclude(is_staff=True).exclude(is_superuser=True).exclude(id=request.user.id)[:5]
+
+    results = []
+    for user in users:
+        results.append({
+            'username': user.username,
+            'avatar': user.profile_image.url if user.profile_image else f"https://ui-avatars.com/api/?name={user.username}",
+            'profile_url': f"/accounts/profile/{user.username}/"
+        })
+    
+    return JsonResponse({'users': results})

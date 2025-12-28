@@ -17,4 +17,6 @@ urlpatterns = [
     path('profile/', views.current_profile_redirect, name='current_profile'),
     path('follow/<str:username>/', views.follow_user_view, name='follow_user'),
     path('remove-follower/<str:username>/', views.remove_follower_view, name='remove_follower'),
+
+    path('search-users/', views.search_users_ajax, name='search_users_ajax'),
 ]

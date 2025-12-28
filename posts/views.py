@@ -3,6 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
+from django.urls import reverse
+from django.db.models import Count
+from django.core.paginator import Paginator
+from django.db.models import Q
+from django.utils.timesince import timesince
 from .forms import PostForm
 from accounts.models import User, Follow
 from .models import Post, Like, Comment
@@ -10,19 +15,16 @@ from .models import Post, Like, Comment
 @never_cache
 @login_required
 def home_view(request):
-    # Fetch all posts, ordered by newest first
-    # In the future, you can filter this to only show followed users
-    # posts = Post.objects.all().order_by('-created_at')
-    posts = Post.objects.filter(is_active=True).order_by('-created_at')
+    posts = Post.objects.filter(is_active=True)\
+                .annotate(
+                    like_count=Count('likes', distinct=True),
+                    comment_count=Count('comments', distinct=True)
+                ).order_by('-created_at')
     
-    # Get IDs of posts liked by user
     liked_posts_ids = Like.objects.filter(user=request.user).values_list('post_id', flat=True)
-    
-    # Get IDs of users the current user follows
     following_ids = Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
 
-    # Get Suggestions (The same logic used in Profile View)
-    # Exclude self, existing follows, admins, and staff
+    # Suggestions logic...
     suggestions = User.objects.exclude(id=request.user.id) \
                               .exclude(id__in=following_ids) \
                               .exclude(is_superuser=True) \
@@ -62,32 +64,47 @@ def create_post_view(request):
 
     return render(request, 'posts/create.html', {'form': form})
 
-@never_cache
 @login_required
 def like_post_view(request, post_id):
-    # Change 'id=post_id' to 'pk=post_id'
-    post = get_object_or_404(Post, pk=post_id) 
-    
-    like = Like.objects.filter(user=request.user, post=post).first()
-    if like:
-        like.delete()
-    else:
-        Like.objects.create(user=request.user, post=post)
-        
-    return redirect(request.META.get('HTTP_REFERER', 'posts:home'))
-
-@never_cache
-@login_required
-def add_comment_view(request, post_id):
-    # Change 'id=post_id' to 'pk=post_id'
     post = get_object_or_404(Post, pk=post_id)
     
+    # Check if like exists
+    like_filter = Like.objects.filter(user=request.user, post=post)
+    
+    if like_filter.exists():
+        like_filter.delete()
+        liked = False
+    else:
+        Like.objects.create(user=request.user, post=post)
+        liked = True
+        
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        # Count likes directly from the Like model to avoid IDE errors
+        count = Like.objects.filter(post=post).count()
+        return JsonResponse({
+            'liked': liked,
+            'like_count': count
+        })
+        
+    return redirect(request.META.get('HTTP_REFERER', 'posts:home')) 
+
+@login_required
+def add_comment_view(request, post_id):
+    post = get_object_or_404(Post, pk=post_id)
     if request.method == 'POST':
         text = request.POST.get('comment_text')
         if text:
-            Comment.objects.create(user=request.user, post=post, text=text)
+            comment = Comment.objects.create(user=request.user, post=post, text=text)
             
-    return redirect(request.META.get('HTTP_REFERER', 'posts:home'))
+            # This part prevents the reload!
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'success',
+                    'username': comment.user.username,
+                    'profile_url': reverse('accounts:profile', kwargs={'username': comment.user.username}),
+                    'text': comment.text,
+                })
+    return redirect('posts:home')
 
 @login_required
 def profile_view(request, username):
@@ -115,6 +132,37 @@ def profile_view(request, username):
     return render(request, 'accounts/profile.html', context)
 
 @login_required
+def get_comments_ajax(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    comments = post.comments.all().select_related('user').order_by('-created_at')
+    data = []
+    for c in comments:
+        data.append({
+            'username': c.user.username,
+            'text': c.text,
+            'avatar': c.user.profile_image.url if c.user.profile_image else f"https://ui-avatars.com/api/?name={c.user.username}",
+            'created_at': c.created_at.strftime("%b %d, %H:%M"),
+            # Generate the profile URL
+            'profile_url': reverse('accounts:profile', kwargs={'username': c.user.username})
+        })
+    return JsonResponse({'comments': data})
+
+@login_required
+def get_likes_ajax(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    likes = post.likes.all().select_related('user')
+    data = []
+    for l in likes:
+        data.append({
+            'username': l.user.username,
+            'full_name': f"{l.user.first_name} {l.user.last_name}",
+            'avatar': l.user.profile_image.url if l.user.profile_image else f"https://ui-avatars.com/api/?name={l.user.username}",
+            # Generate the profile URL
+            'profile_url': reverse('accounts:profile', kwargs={'username': l.user.username})
+        })
+    return JsonResponse({'likes': data})
+
+@login_required
 def follow_user_view(request, username):
     user_to_toggle = get_object_or_404(User, username=username)
     
@@ -138,3 +186,80 @@ def follow_user_view(request, username):
             
     # Fallback for non-JS browsers (Standard Reload)
     return redirect('accounts:profile', username=username)
+
+@never_cache
+@login_required
+def explore_view(request):
+    query = request.GET.get('q', '').strip()
+    matched_users = None
+    
+    # 1. Base Query for Posts (Annotate counts for speed)
+    posts_list = Post.objects.filter(visibility='public', is_active=True)\
+        .annotate(
+            like_count_attr=Count('likes', distinct=True),
+            comment_count_attr=Count('comments', distinct=True)
+        ).order_by('-created_at')
+
+    # 2. Handle the "Search Results" (People + Posts)
+    if query:
+        # Get users matching search (Excluding admins)
+        matched_users = User.objects.filter(
+            Q(username__icontains=query) | 
+            Q(first_name__icontains=query)
+        ).exclude(is_staff=True).exclude(is_superuser=True)[:8]
+
+        # Filter the posts grid by caption or the poster's username
+        posts_list = posts_list.filter(
+            Q(caption__icontains=query) | 
+            Q(user__username__icontains=query)
+        )
+
+    # 3. Pagination
+    paginator = Paginator(posts_list, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # 4. AJAX for Infinite Scroll
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        posts_data = []
+        for post in page_obj:
+            posts_data.append({
+                'id': post.id,
+                'image_url': post.image.url,
+                'like_count': post.like_count_attr,
+                'comment_count': post.comment_count_attr,
+            })
+        return JsonResponse({'posts': posts_data, 'has_next': page_obj.has_next()})
+
+    return render(request, 'posts/explore.html', {
+        'posts': page_obj,
+        'matched_users': matched_users,
+        'query': query
+    })
+
+@login_required
+def post_detail_ajax(request, post_id):
+    post = get_object_or_404(Post, pk=post_id)
+    comments = post.comments.all().select_related('user').order_by('-created_at')
+    
+    comments_data = []
+    for c in comments:
+        comments_data.append({
+            'username': c.user.username,
+            'text': c.text,
+            'avatar': c.user.profile_image.url if c.user.profile_image else f"https://ui-avatars.com/api/?name={c.user.username}",
+            'profile_url': reverse('accounts:profile', kwargs={'username': c.user.username})
+        })
+
+    return JsonResponse({
+        'pk': post.pk,
+        'username': post.user.username,
+        'user_avatar': post.user.profile_image.url if post.user.profile_image else f"https://ui-avatars.com/api/?name={post.user.username}",
+        'profile_url': reverse('accounts:profile', kwargs={'username': post.user.username}),
+        'image_url': post.image.url,
+        'caption': post.caption,
+        'likes_count': post.likes.count(),
+        'is_liked': post.likes.filter(user=request.user).exists(),
+        'comments': comments_data,
+        'created_at': timesince(post.created_at).upper(),
+    })

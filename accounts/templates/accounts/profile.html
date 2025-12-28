@@ -4,7 +4,6 @@
 
 {% block extra_css %}
 <style>
-    /* --- KEEP YOUR MAIN PROFILE CSS --- */
     .main-content { width: var(--feed-width); margin: 0 30px; padding-top: 30px; padding-bottom: 80px; position: relative; }
     .profile-header { background: var(--bg-card); border-radius: var(--card-radius); padding: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 30px; display: flex; align-items: flex-start; gap: 30px; }
     .profile-avatar-container { flex-shrink: 0; }
@@ -86,6 +85,33 @@
         .right-sidebar { display: none; }
         .main-content { margin: 0 auto; width: 100%; }
     }
+
+    .detail-modal {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.9); z-index: 5000; align-items: center; justify-content: center;
+    }
+    .detail-container {
+        display: flex; background: var(--bg-card); width: 90%; max-width: 1000px;
+        height: 85vh; border-radius: 8px; overflow: hidden; position: relative;
+    }
+    .detail-img-side { flex: 1.2; background: #000; display: flex; align-items: center; justify-content: center; }
+    .detail-img-side img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .detail-info-side { flex: 0.8; display: flex; flex-direction: column; min-width: 350px; background: var(--bg-card); }
+
+    .detail-header { padding: 15px; border-bottom: 1px solid var(--bg-hover); display: flex; align-items: center; gap: 12px; }
+    .detail-header img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+
+    .detail-comments-box { flex: 1; overflow-y: auto; padding: 15px; }
+    .comment-row { display: flex; gap: 12px; margin-bottom: 18px; line-height: 1.4; font-size: 0.9rem; }
+    .comment-row img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+
+    .detail-footer { padding: 15px; border-top: 1px solid var(--bg-hover); }
+    .modal-action-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-main); margin-right: 15px; padding: 0; }
+
+    .close-detail { position: absolute; top: 20px; right: 25px; color: #fff; font-size: 2.5rem; cursor: pointer; z-index: 5100; }
+    .nav-arrow { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 2.5rem; cursor: pointer; padding: 20px; transition: 0.2s; }
+    .nav-arrow.disabled { opacity: 0; pointer-events: none; }
+    .arrow-left { left: 10px; } .arrow-right { right: 10px; }
 </style>
 {% endblock %}
 
@@ -126,10 +152,6 @@
                     </li>
 
                     <li class="stat-clickable" onclick="openModal('followingModal')">
-                        <!-- 
-                            LOGIC: We only add the ID 'myFollowingCount' if the user is looking at THEIR OWN profile.
-                            If I am looking at someone else's profile, the number shouldn't change when I follow a suggestion.
-                        -->
                         {% if request.user == profile_user %}
                             <strong id="myFollowingCount">{{ following_count }}</strong> Following
                         {% else %}
@@ -155,22 +177,24 @@
             <div class="tab-item active"><i class="fa-solid fa-table-cells"></i> Posts</div>
         </div>
 
-        <div class="posts-grid">
+        <div class="posts-grid" id="profilePostsGrid">
             {% for post in posts %}
-                <div class="grid-item">
-                    {% if post.image %}<img src="{{ post.image.url }}">{% else %}<div style="width:100%; height:100%; background:#eee;"></div>{% endif %}
-                    <div class="grid-overlay"><i class="fa-solid fa-heart"></i> {{ post.likes.count }}</div>
-                </div>
-            {% empty %}
-                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-secondary);">
-                    <i class="fa-solid fa-camera" style="font-size: 3rem; margin-bottom: 10px;"></i>
-                    <p>No posts yet</p>
+                <div class="grid-item" data-post-id="{{ post.pk }}">
+                    {% if post.image %}
+                        <img src="{{ post.image.url }}">
+                    {% else %}
+                        <div style="width:100%; height:100%; background:#eee;"></div>
+                    {% endif %}
+                    <div class="grid-overlay">
+                        <span><i class="fa-solid fa-heart"></i> {{ post.like_count_attr }}</span>
+                        <span><i class="fa-solid fa-comment"></i> {{ post.comment_count_attr }}</span>
+                    </div>
                 </div>
             {% endfor %}
         </div>
     </main>
 
-    <!-- RIGHT SIDEBAR (Uses the common Include) -->
+    <!-- RIGHT SIDEBAR -->
     <aside class="right-sidebar">
         {% include 'includes/right_sidebar.html' %}
     </aside>
@@ -250,11 +274,6 @@
                     </div>
 
                     {% if request.user != rel.following %}
-                        <!-- 
-                           AJAX BUTTON:
-                           If I am looking at MY OWN profile, these are people I follow.
-                           If I look at OTHER profile, I might follow them or not.
-                        -->
                         <button class="modal-follow-btn {% if rel.following.id in my_following_ids %}mfb-following{% else %}mfb-follow{% endif %}"
                                 data-username="{{ rel.following.username }}"
                                 onclick="handleModalFollowToggle(this)">
@@ -269,10 +288,35 @@
         </div>
     </div>
 
-    <!-- 
-       ONLY MODAL AND SEARCH SCRIPTS HERE.
-       SIDEBAR SCRIPT IS REMOVED (IT IS NOW IN THE INCLUDE)
-    -->
+    <div id="postDetailModal" class="detail-modal">
+        <span class="close-detail" id="closeDetailBtn">&times;</span>
+        <i class="fa-solid fa-chevron-left nav-arrow arrow-left" id="prevPostBtn"></i>
+        <i class="fa-solid fa-chevron-right nav-arrow arrow-right" id="nextPostBtn"></i>
+
+        <div class="detail-container">
+            <div class="detail-img-side"><img id="m-img" src=""></div>
+            <div class="detail-info-side">
+                <div class="detail-header">
+                    <img id="m-avatar" src="">
+                    <b id="m-username"></b>
+                </div>
+                <div class="detail-comments-box" id="m-comments-list"></div>
+                <div class="detail-footer">
+                    <div>
+                        <button class="modal-action-btn" id="m-like-btn"><i class="fa-regular fa-heart"></i></button>
+                        <button class="modal-action-btn"><i class="fa-regular fa-comment"></i></button>
+                    </div>
+                    <b id="m-like-count">0</b> likes
+                    <form id="m-comment-form" style="display:flex; margin-top:15px; border-top:1px solid var(--bg-hover); padding-top:10px;">
+                        {% csrf_token %}
+                        <input type="text" name="comment_text" placeholder="Add a comment..." required style="flex:1; border:none; outline:none; background:transparent;">
+                        <button type="submit" style="background:none; border:none; color:var(--accent-solid); font-weight:600;">Post</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         function openModal(modalId) {
             const modal = document.getElementById(modalId);
@@ -393,11 +437,125 @@
             }
         };
 
-        {% comment %} document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const modalParam = urlParams.get('modal');
-            if (modalParam === 'followers') openModal('followersModal');
-            else if (modalParam === 'following') openModal('followingModal');
-        }); {% endcomment %}
+    document.addEventListener('DOMContentLoaded', function() {
+        let loadedPostIds = Array.from(document.querySelectorAll('#profilePostsGrid .grid-item')).map(el => el.dataset.postId);
+        let currentIndex = -1;
+        let currentPostPk = null;
+
+        const detailModal = document.getElementById('postDetailModal');
+        const commentsList = document.getElementById('m-comments-list');
+
+        function loadPostDetail(pk) {
+            currentPostPk = pk;
+            fetch(`/posts/post-detail/${pk}/`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('m-img').src = data.image_url;
+                    document.getElementById('m-avatar').src = data.user_avatar;
+                    document.getElementById('m-username').innerText = data.username;
+                    document.getElementById('m-like-count').innerText = data.likes_count;
+
+                    // Like icon state
+                    const icon = document.querySelector('#m-like-btn i');
+                    icon.className = data.is_liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+                    icon.style.color = data.is_liked ? '#e0245e' : '';
+
+                    // Load comments (Caption first)
+                    let html = `
+                        <div class="comment-row">
+                            <img src="${data.user_avatar}">
+                            <div><b>${data.username}</b> ${data.caption}</div>
+                        </div>`;
+                    data.comments.forEach(c => {
+                        html += `
+                            <div class="comment-row">
+                                <a href="${c.profile_url}"><img src="${c.avatar}"></a>
+                                <div>
+                                    <a href="${c.profile_url}" style="text-decoration:none; color:inherit; font-weight:600;">${c.username}</a>
+                                    ${c.text}
+                                </div>
+                            </div>`;
+                    });
+                    commentsList.innerHTML = html;
+                    detailModal.style.display = 'flex';
+                    updateNavArrows();
+                });
+        }
+
+        function updateNavArrows() {
+            document.getElementById('prevPostBtn').classList.toggle('disabled', currentIndex <= 0);
+            document.getElementById('nextPostBtn').classList.toggle('disabled', currentIndex >= loadedPostIds.length - 1);
+        }
+
+        // Grid Click
+        document.getElementById('profilePostsGrid').addEventListener('click', e => {
+            const item = e.target.closest('.grid-item');
+            if (item) {
+                currentIndex = loadedPostIds.indexOf(item.dataset.postId);
+                loadPostDetail(item.dataset.postId);
+            }
+        });
+
+        // Arrows
+        document.getElementById('nextPostBtn').onclick = () => { if(currentIndex < loadedPostIds.length - 1) loadPostDetail(loadedPostIds[++currentIndex]); };
+        document.getElementById('prevPostBtn').onclick = () => { if(currentIndex > 0) loadPostDetail(loadedPostIds[--currentIndex]); };
+
+        // Close
+        document.getElementById('closeDetailBtn').onclick = () => detailModal.style.display = 'none';
+        window.addEventListener('click', e => { if(e.target == detailModal) detailModal.style.display = 'none'; });
+
+        // AJAX Like in Modal
+        document.getElementById('m-like-btn').onclick = function() {
+            fetch(`/posts/like/${currentPostPk}/`, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') }
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('m-like-count').innerText = data.like_count;
+                const icon = this.querySelector('i');
+                icon.className = data.liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+                icon.style.color = data.liked ? '#e0245e' : '';
+            });
+        };
+
+        // AJAX Comment in Modal
+        document.getElementById('m-comment-form').onsubmit = function(e) {
+            e.preventDefault();
+            fetch(`/posts/comment/${currentPostPk}/`, {
+                method: 'POST',
+                body: new FormData(this),
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    const newComment = `
+                        <div class="comment-row">
+                            <a href="${data.profile_url}"><img src="${data.avatar || 'https://ui-avatars.com/api/?name='+data.username}"></a>
+                            <div><a href="${data.profile_url}" style="text-decoration:none; color:inherit; font-weight:600;">${data.username}</a> ${data.text}</div>
+                        </div>`;
+                    commentsList.insertAdjacentHTML('beforeend', newComment);
+                    this.reset();
+                }
+            });
+        };
+    });
+
+    // Helper for CSRF 
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
     </script>
 {% endblock %}

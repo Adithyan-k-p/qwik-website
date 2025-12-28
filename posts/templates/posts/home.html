@@ -14,6 +14,68 @@
         transition: color 0.2s;
     }
     .post-follow-link:hover { color: #556cd6; }
+
+    /* Modal Overlay */
+    .qwik-modal {
+        display: none; /* Hidden by default */
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.6);
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Modal Content Box */
+    .modal-content {
+        background-color: var(--bg-card);
+        width: 90%;
+        max-width: 500px;
+        border-radius: 12px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+        padding: 15px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-body {
+        padding: 15px;
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+
+    .modal-close {
+        cursor: pointer;
+        font-size: 1.5rem;
+        color: var(--text-secondary);
+    }
+
+    /* User list item in Like Modal */
+    .user-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 15px;
+    }
+
+    .user-row img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
 </style>
 {% endblock %}
 
@@ -40,12 +102,13 @@
                                 <!-- Username Link -->
                                 <h4><a href="{% url 'accounts:profile' post.user.username %}">{{ post.user.username }}</a></h4>
                                 
-                                <!-- FOLLOW LOGIC: 
-                                     1. Don't show if it's my own post 
-                                     2. Don't show if I already follow them -->
                                 {% if request.user != post.user and post.user.id not in following_ids %}
+                                <span class="follow-area-{{ post.user.username }}">
                                     <span style="margin: 0 6px; color: var(--text-secondary); font-size: 0.8rem;">•</span>
-                                    <a href="{% url 'accounts:follow_user' post.user.username %}" class="post-follow-link">Follow</a>
+                                    <a href="{% url 'accounts:follow_user' post.user.username %}" 
+                                    class="post-follow-link ajax-follow-btn" 
+                                    data-username="{{ post.user.username }}">Follow</a>
+                                </span>
                                 {% endif %}
                             </div>
 
@@ -74,21 +137,17 @@
                 <div class="post-footer">
                     <div class="action-bar">
                         <div class="left-actions">
-                            <!-- LIKE BUTTON -->
-                            <a href="{% url 'posts:like_post' post.id %}" style="text-decoration: none;">
-                                <button class="act-btn like-btn {% if post.id in liked_posts_ids %}liked{% endif %}">
-                                    {% if post.id in liked_posts_ids %}
-                                        <i class="fa-solid fa-heart" style="color: #e0245e;"></i>
-                                    {% else %}
-                                        <i class="fa-regular fa-heart"></i>
-                                    {% endif %}
-                                    {{ post.likes.count }}
-                                </button>
-                            </a>
+                            <!-- LIKE COUNT -->
+                            <button class="act-btn like-btn ajax-like-btn {% if post.id in liked_posts_ids %}liked{% endif %}" data-url="{% url 'posts:like_post' post.id %}">
+                                <i class="{% if post.id in liked_posts_ids %}fa-solid fa-heart{% else %}fa-regular fa-heart{% endif %}"></i>
+                            </button>
+                            <span class="open-likes-modal" data-post-id="{{ post.id }}" style="cursor:pointer; font-weight:600;">
+                                <span class="like-count">{{ post.like_count }}</span> likes
+                            </span>
 
                             <!-- COMMENT ICON -->
-                            <button class="act-btn">
-                                <i class="fa-regular fa-comment"></i> {{ post.comments.count }}
+                            <button class="act-btn open-comments-modal" data-post-id="{{ post.id }}">
+                                <i class="fa-regular fa-comment"></i> {{ post.comment_count }}
                             </button>
                         </div>
                         
@@ -105,27 +164,24 @@
                     </div>
                     {% endif %}
 
-                    <!-- PREVIEW COMMENTS (Last 2) -->
-                    {% if post.comments.all %}
-                    <div style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 5px;">
+                    {% comment %} <!-- COMMENTS PREVIEW -->
+                    <div class="comments-preview-{{ post.id }}" style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 5px;">
                         {% for comment in post.comments.all|slice:":2" %}
                             <div style="margin-bottom: 4px;">
-                                <!-- Linked Username in Comments -->
                                 <b style="margin-right: 5px;">
                                     <a href="{% url 'accounts:profile' comment.user.username %}">{{ comment.user.username }}</a>
                                 </b> 
                                 <span style="color: var(--text-secondary);">{{ comment.text }}</span>
                             </div>
                         {% endfor %}
-                    </div>
-                    {% endif %}
+                    </div> {% endcomment %}
 
-                    <!-- ADD COMMENT FORM -->
-                    <form action="{% url 'posts:add_comment' post.id %}" method="post" style="display: flex; gap: 10px; margin-top: 10px;">
+                    <!-- COMMENT FORM -->
+                    <form class="ajax-comment-form" action="{% url 'posts:add_comment' post.id %}" method="post" data-post-id="{{ post.id }}">
                         {% csrf_token %}
                         <input type="text" name="comment_text" placeholder="Add a comment..." required 
-                            style="width: 100%; border: none; background: transparent; outline: none; font-size: 0.9rem;">
-                        <button type="submit" style="background: none; border: none; color: var(--accent-solid); font-weight: 600; cursor: pointer;">Post</button>
+                            style="width: 100%; border: none; background: transparent; outline: none;">
+                        <button type="submit" style="background:none; border:none; color:var(--accent-solid); font-weight:600; cursor:pointer;">Post</button>
                     </form>
                 </div>
             </article>
@@ -144,4 +200,156 @@
     <aside class="right-sidebar">
         {% include 'includes/right_sidebar.html' %}
     </aside>
+
+    <div id="qwikModal" class="qwik-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="modalTitle">Comments</h4>
+                <span class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content loaded via AJAX -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // 1. CSRF Helper (Needed for POST requests like Like and Comment)
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // 2. AJAX FOLLOW LOGIC
+        document.querySelectorAll('.ajax-follow-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault(); // STOPS PAGE RELOAD
+                const url = this.href;
+                const username = this.dataset.username;
+
+                fetch(url, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'followed') {
+                        // Hide all follow buttons for this specific user on the page
+                        document.querySelectorAll(`.follow-area-${username}`).forEach(el => el.remove());
+                    }
+                });
+            });
+        });
+
+        // 3. AJAX LIKE LOGIC
+        document.querySelectorAll('.ajax-like-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = this.dataset.url;
+                const postId = url.split('/').filter(Boolean).pop(); // Get ID from URL
+                const icon = this.querySelector('i');
+                const countSpan = document.querySelector(`.like-count-${postId}`);
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    countSpan.innerText = data.like_count;
+                    icon.className = data.liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+                    icon.style.color = data.liked ? '#e0245e' : '';
+                });
+            });
+        });
+
+        // 4. AJAX COMMENT LOGIC (Post comment from feed)
+        document.querySelectorAll('.ajax-comment-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault(); // STOPS PAGE RELOAD
+                const postId = this.dataset.postId;
+                const formData = new FormData(this);
+                const countSpan = document.querySelector(`.comment-count-${postId}`);
+                const input = this.querySelector('input[name="comment_text"]');
+
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        input.value = ''; // Clear input field
+                        // Update the count on the comment icon
+                        const currentCount = parseInt(countSpan.innerText);
+                        countSpan.innerText = currentCount + 1;
+                        alert("Comment posted!"); // Optional feedback
+                    }
+                });
+            });
+        });
+
+        // --- MODAL SYSTEM LOGIC (Likes and Comments list) ---
+        const modal = document.getElementById('qwikModal');
+        const modalBody = document.getElementById('modalBody');
+        const modalTitle = document.getElementById('modalTitle');
+        const closeBtn = document.querySelector('.modal-close');
+
+        closeBtn.onclick = () => modal.style.display = "none";
+        window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
+
+        document.querySelectorAll('.open-likes-modal').forEach(el => {
+            el.addEventListener('click', () => {
+                const postId = el.dataset.postId;
+                modalTitle.innerText = "Likes";
+                modalBody.innerHTML = "Loading...";
+                modal.style.display = "flex";
+                fetch(`/posts/get-likes/${postId}/`).then(r => r.json()).then(data => {
+                    modalBody.innerHTML = data.likes.map(u => `
+                        <div class="user-row">
+                            <a href="${u.profile_url}"><img src="${u.avatar}"></a>
+                            <div><a href="${u.profile_url}" style="text-decoration:none; color:inherit; font-weight:600;">${u.username}</a></div>
+                        </div>`).join('') || "No likes yet.";
+                });
+            });
+        });
+
+        document.querySelectorAll('.open-comments-modal').forEach(el => {
+            el.addEventListener('click', () => {
+                const postId = el.dataset.postId;
+                modalTitle.innerText = "Comments";
+                modalBody.innerHTML = "Loading...";
+                modal.style.display = "flex";
+                fetch(`/posts/get-comments/${postId}/`).then(r => r.json()).then(data => {
+                    modalBody.innerHTML = data.comments.map(c => `
+                        <div class="user-row" style="align-items:start;">
+                            <a href="${c.profile_url}"><img src="${c.avatar}" style="width:30px;height:30px;"></a>
+                            <div>
+                                <a href="${c.profile_url}" style="text-decoration:none; color:inherit; font-weight:600;">${c.username}</a>
+                                <span style="margin-left:5px;">${c.text}</span>
+                            </div>
+                        </div>`).join('') || "No comments yet.";
+                });
+            });
+        });
+    });
+    </script>
 {% endblock %}
