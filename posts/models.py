@@ -1,3 +1,4 @@
+from typing import Any
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
@@ -51,8 +52,12 @@ class Post(models.Model):
             
         super().save(*args, **kwargs)
 
+    likes: Any 
+    comments: Any
+
     def __str__(self):
-        return f"{self.user.username}'s Qwip ({self.visibility})"
+        return f"{self.user.username}'s Qwip"
+        # return f"{self.user.username}'s Qwip ({self.visibility})"
 
     class Meta:
         db_table = 'posts'
