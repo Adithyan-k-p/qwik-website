@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}Inbox - Qwik{% endblock %}
+
+{% block extra_css %}
+<style>
+    .messaging-container {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 20px;
+        max-width: 1000px;
+        margin: 20px auto;
+        height: calc(100vh - 100px);
+    }
+
+    .inbox-card {
+        background: var(--bg-card);
+        border-radius: var(--card-radius);
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--bg-hover);
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .inbox-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--bg-hover);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .inbox-header h3 { font-weight: 600; font-size: 1.2rem; }
+
+    .search-area { padding: 15px; border-bottom: 1px solid var(--bg-hover); position: relative; }
+    .search-bar {
+        width: 100%;
+        padding: 10px 15px;
+        border-radius: 10px;
+        border: 1px solid var(--bg-hover);
+        background: var(--bg-body);
+        outline: none;
+        font-family: inherit;
+    }
+
+    #search-results {
+        position: absolute;
+        top: 60px; left: 15px; right: 15px;
+        background: var(--bg-card);
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        z-index: 100;
+        max-height: 300px;
+        overflow-y: auto;
+        display: none;
+    }
+
+    .thread-list { flex: 1; overflow-y: auto; }
+    
+    .thread-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        gap: 15px;
+        transition: 0.2s;
+        border-bottom: 1px solid rgba(0,0,0,0.02);
+    }
+    .thread-item:hover { background: var(--bg-hover); }
+
+    .thread-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; }
+    
+    .thread-info { flex: 1; min-width: 0; }
+    .thread-info h4 { font-size: 0.95rem; margin-bottom: 2px; color: var(--text-main); }
+    .msg-preview { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Unread Styling */
+    .is-unread { background: rgba(102, 126, 234, 0.03); }
+    .is-unread h4 { font-weight: 700; }
+    .is-unread .msg-preview { color: var(--text-main); font-weight: 600; }
+
+    .unread-badge {
+        width: 10px; height: 10px;
+        background: var(--accent-solid);
+        border-radius: 50%;
+    }
+
+    .suggestion-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 0; border-bottom: 1px solid var(--bg-hover);
+    }
+    .suggestion-item img { width: 40px; height: 40px; border-radius: 50%; }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="main-content" style="width: 100%;">
+    <div class="messaging-layout" style="display: grid; grid-template-columns: 1fr 300px; max-width: 1000px; margin: 20px auto; height: 80vh; gap: 20px;">
+        <div class="inbox-card" style="background: var(--bg-card); border-radius: 16px; border: 1px solid var(--bg-hover); display: flex; flex-direction: column;">
+            <div style="padding: 20px; border-bottom: 1px solid var(--bg-hover);">
+                <h3 style="font-weight: 600;">Messages</h3>
+            </div>
+
+            <div class="thread-list" id="thread-container" style="overflow-y: auto; flex: 1;">
+                {% for data in threads %}
+                <a href="{% url 'chats:chat_room' data.other_user.username %}" 
+                   class="thread-item {% if data.unread_count > 0 %}is-unread{% endif %}" 
+                   data-user-id="{{ data.other_user.pk }}" 
+                   style="display: flex; align-items: center; padding: 15px 20px; gap: 15px; border-bottom: 1px solid var(--bg-hover);">
+                    
+                    <img src="{% if data.other_user.profile_image %}{{ data.other_user.profile_image.url }}{% else %}https://ui-avatars.com/api/?name={{ data.other_user.username }}{% endif %}" style="width:54px; height:54px; border-radius:50%; object-fit: cover;">
+                    
+                    <div style="flex: 1;">
+                        <h4 style="font-size: 0.95rem; margin-bottom: 3px;">{{ data.other_user.username }}</h4>
+                        <p class="msg-preview" id="last-msg-{{ data.other_user.pk }}" 
+                           style="font-size: 0.85rem; color: var(--text-secondary); {% if data.unread_count > 0 %}font-weight: bold; color: var(--text-main);{% endif %}">
+                            {{ data.last_msg.text|truncatechars:35 }}
+                        </p>
+                    </div>
+
+                    <div id="badge-container-{{ data.other_user.pk }}">
+                        {% if data.unread_count > 0 %}
+                            <span class="unread-count-badge" style="background: var(--accent-solid); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">{{ data.unread_count }}</span>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Sidebar for Suggestions -->
+        <aside style="background: var(--bg-card); border-radius: 16px; border: 1px solid var(--bg-hover); padding: 20px; height: fit-content;">
+            <h4 style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">Suggestions</h4>
+            {% for user in suggestions %}
+            <a href="{% url 'chats:chat_room' user.username %}" style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                <img src="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}https://ui-avatars.com/api/?name={{ user.username }}{% endif %}" style="width:36px; height:36px; border-radius:50%;">
+                <span style="font-weight: 600; font-size: 0.85rem;">{{ user.username }}</span>
+            </a>
+            {% endfor %}
+        </aside>
+    </div>
+</main>
+
+<script>
+    // Rapid Update Logic for Inbox
+    window.updateInboxUI = function(data) {
+        const threadRow = document.querySelector(`.thread-item[data-user-id="${data.sender_id}"]`);
+        const container = document.getElementById('thread-container');
+        
+        if (threadRow) {
+            // 1. Move thread to top
+            container.prepend(threadRow);
+            
+            // 2. Update text and bold it
+            const preview = document.getElementById(`last-msg-${data.sender_id}`);
+            preview.innerText = data.message;
+            preview.style.fontWeight = "bold";
+            preview.style.color = "var(--text-main)";
+
+            // 3. Update the Count Badge rapidly
+            const badgeContainer = document.getElementById(`badge-container-${data.sender_id}`);
+            let badge = badgeContainer.querySelector('.unread-count-badge');
+            if (badge) {
+                badge.innerText = parseInt(badge.innerText) + 1;
+            } else {
+                badgeContainer.innerHTML = `<span class="unread-count-badge" style="background: var(--accent-solid); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">1</span>`;
+            }
+        } else {
+            // If it's a first-time message from a new user
+            location.reload();
+        }
+    };
+</script>
+{% endblock %}
