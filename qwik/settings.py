@@ -29,12 +29,19 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG') == 'True'
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
+
+# Change this to allow external access
+ALLOWED_HOSTS = ['*'] 
+
+# Add this for WebSocket/Form security when sharing via Ngrok or IP
+CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app', 'http://127.0.0.1']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -43,6 +50,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "accounts",
     "posts",
+    "chats",
+    "channels",
 ]
 
 # Custom User Model
@@ -75,12 +84,25 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                'chats.context_processors.unread_messages_count',
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = "qwik.wsgi.application"
+
+ASGI_APPLICATION = "qwik.asgi.application"
+
+# Channel Layer (Redis is required for production, In-memory for local dev)
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 
 # Database
