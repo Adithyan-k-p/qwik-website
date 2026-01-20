@@ -138,11 +138,11 @@
                     <div class="action-bar">
                         <div class="left-actions">
                             <!-- LIKE COUNT -->
-                            <button class="act-btn like-btn ajax-like-btn {% if post.id in liked_posts_ids %}liked{% endif %}" data-url="{% url 'posts:like_post' post.id %}">
+                            <button class="act-btn like-btn ajax-like-btn {% if post.id in liked_posts_ids %}liked{% endif %}" data-url="{% url 'posts:like_post' post.id %}" data-post-id="{{ post.id }}">
                                 <i class="{% if post.id in liked_posts_ids %}fa-solid fa-heart{% else %}fa-regular fa-heart{% endif %}"></i>
                             </button>
                             <span class="open-likes-modal" data-post-id="{{ post.id }}" style="cursor:pointer; font-weight:600;">
-                                <span class="like-count">{{ post.like_count }}</span> likes
+                                <span class="like-count-{{ post.id }}">{{ post.like_count }}</span> likes
                             </span>
 
                             <!-- COMMENT ICON -->

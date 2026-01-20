@@ -13,4 +13,8 @@ urlpatterns = [
     path('get-likes/<int:post_id>/', views.get_likes_ajax, name='get_likes_ajax'),
     path('explore/', views.explore_view, name='explore'),
     path('post-detail/<int:post_id>/', views.post_detail_ajax, name='post_detail_ajax'),
+    path('delete/<int:post_id>/', views.delete_post_view, name='delete_post'),
+    path('restore/<int:post_id>/', views.restore_post_view, name='restore_post'),
+    path('update-caption/<int:post_id>/', views.update_post_caption, name='update_caption'),
+    path('delete-comment/<int:comment_id>/', views.delete_comment_view, name='delete_comment'),
 ]

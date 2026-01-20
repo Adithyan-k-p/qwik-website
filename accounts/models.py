@@ -16,6 +16,7 @@ class User(AbstractUser):
     profile_image = models.ImageField(upload_to=profile_image_path, blank=True, null=True)
     bio = models.TextField(null=True, blank=True)
     role = models.CharField(max_length=10, choices=[('user', 'User'), ('admin', 'Admin')], default='user')
+    is_private = models.BooleanField(default=False) 
     is_active = models.BooleanField(default=True)
     is_verified = models.BooleanField(default=False)
     last_login = models.DateTimeField(null=True, blank=True)

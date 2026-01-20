@@ -18,4 +18,6 @@ urlpatterns = [
     path('remove-follower/<str:username>/', views.remove_follower_view, name='remove_follower'),
 
     path('search-users/', views.search_users_ajax, name='search_users_ajax'),
+
+    path('settings/', views.settings_view, name='settings'),
 ]

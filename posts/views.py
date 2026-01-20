@@ -263,3 +263,53 @@ def post_detail_ajax(request, post_id):
         'comments': comments_data,
         'created_at': timesince(post.created_at).upper(),
     })
+
+@login_required
+def delete_post_view(request, post_id):
+    """ Soft delete: User archives the post """
+    post = get_object_or_404(Post, pk=post_id)
+    if request.user == post.user:
+        post.is_archived = True
+        post.is_active = False # Hide from feed
+        post.save()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
+
+@login_required
+def restore_post_view(request, post_id):
+    """ Restore: User brings back the post """
+    post = get_object_or_404(Post, pk=post_id)
+    if request.user == post.user:
+        post.is_archived = False
+        post.is_active = True # Show in feed again
+        
+        # Optional: Check if it was a temporary post that already expired
+        # The save() method in models.py handles expiration logic, so we just save()
+        post.save() 
+        
+        # If the save() method set it back to inactive (because time expired), warn frontend
+        if not post.is_active:
+             return JsonResponse({'status': 'expired', 'message': 'Post restored but has expired.'})
+
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
+
+# ... keep update_post_caption and delete_comment_view as they were ...
+@login_required
+def update_post_caption(request, post_id):
+    if request.method == 'POST':
+        post = get_object_or_404(Post, pk=post_id)
+        if request.user == post.user:
+            new_caption = request.POST.get('caption', '')
+            post.caption = new_caption
+            post.save()
+            return JsonResponse({'status': 'success', 'new_caption': new_caption})
+    return JsonResponse({'status': 'error'}, status=400)
+
+@login_required
+def delete_comment_view(request, comment_id):
+    comment = get_object_or_404(Comment, pk=comment_id)
+    if request.user == comment.user:
+        comment.delete()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'}, status=403)

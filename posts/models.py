@@ -34,7 +34,7 @@ class Post(models.Model):
     post_type = models.CharField(max_length=15, choices=POST_TYPE_CHOICES, default='temporary')
     
     visibility = models.CharField(max_length=10, choices=VISIBILITY_CHOICES, default='public')
-
+    is_archived = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

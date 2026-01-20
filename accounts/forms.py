@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model 
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
 from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator
@@ -176,3 +176,24 @@ class EditProfileForm(forms.ModelForm):
                 raise forms.ValidationError("This email is already registered.")
             return email
         return email
+    
+
+class CustomPasswordChangeForm(PasswordChangeForm):
+    def clean_new_password1(self):
+        # FIX: Add 'or ""' so if it is None, it becomes an empty string.
+        # This satisfies the type checker (Sized protocol).
+        password = self.cleaned_data.get('new_password1') or ""
+        
+        # 1. Check Length (8 to 32)
+        if len(password) < 8 or len(password) > 32:
+            raise forms.ValidationError("Password must be between 8 and 32 characters.")
+        
+        # 2. Check for at least one Uppercase letter
+        if not re.search(r'[A-Z]', password):
+            raise forms.ValidationError("Password must contain at least one uppercase letter.")
+        
+        # 3. Check for at least one Digit
+        if not re.search(r'\d', password):
+            raise forms.ValidationError("Password must contain at least one number.")
+            
+        return password

@@ -3,10 +3,13 @@ from django.contrib.auth import login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.db.models import Q, Count
-from .forms import SignUpForm, LoginForm, EditProfileForm
+from .forms import SignUpForm, LoginForm, EditProfileForm, CustomPasswordChangeForm
 from .models import User, Follow
-from posts.models import Post
+from posts.models import Post, Like, Comment
 from django.views.decorators.cache import never_cache
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
+from django.contrib import messages
 import os
 
 def check_username(request):
@@ -239,3 +242,77 @@ def search_users_ajax(request):
         })
     
     return JsonResponse({'users': results})
+
+@never_cache
+@login_required
+def settings_view(request):
+    user = request.user
+    
+    # Initialize the form (GET request)
+    password_form = CustomPasswordChangeForm(user)
+
+    if request.method == 'POST':
+        
+        # --- 1. HANDLE PASSWORD CHANGE ---
+        if 'change_password' in request.POST:
+            password_form = CustomPasswordChangeForm(user, request.POST)
+            
+            if password_form.is_valid():
+                user = password_form.save()
+                # Update session so user isn't logged out
+                update_session_auth_hash(request, user)
+                
+                # Success Alert (Green)
+                messages.success(request, 'Your password has been changed successfully!')
+                return redirect('accounts:settings')
+            else:
+                # Error Alert (Red)
+                # Loop through errors to display the specific backend validation failure
+                if password_form.errors:
+                    for field, errors in password_form.errors.items():
+                        for error in errors:
+                            messages.error(request, str(error))
+                            break 
+                        break
+        
+        # --- 2. HANDLE PRIVACY TOGGLE ---
+        elif 'update_privacy' in request.POST:
+            is_private = request.POST.get('is_private') == 'on'
+            
+            if user.is_private != is_private:
+                user.is_private = is_private
+                user.save()
+                status_msg = "Private" if is_private else "Public"
+                messages.success(request, f'Your account is now {status_msg}.')
+            
+            return redirect('accounts:settings')
+
+    # --- FETCH DATA FOR TABS ---
+    
+    # 1. My Active Posts
+    my_posts = Post.objects.filter(user=user, is_active=True, is_archived=False)\
+                           .order_by('-created_at')
+
+    # 2. Recycle Bin
+    archived_posts = Post.objects.filter(user=user, is_archived=True)\
+                                 .order_by('-created_at')
+
+    # 3. Liked Posts
+    my_likes = Like.objects.filter(user=user, post__is_active=True)\
+                           .select_related('post', 'post__user')\
+                           .order_by('-created_at')
+
+    # 4. My Comments
+    my_comments = Comment.objects.filter(user=user, post__is_active=True)\
+                                 .select_related('post', 'post__user')\
+                                 .order_by('-created_at')
+
+    context = {
+        'password_form': password_form,
+        'my_posts': my_posts,
+        'archived_posts': archived_posts,
+        'my_likes': my_likes,
+        'my_comments': my_comments,
+        'active_tab': request.GET.get('tab', 'general') 
+    }
+    return render(request, 'accounts/settings.html', context)

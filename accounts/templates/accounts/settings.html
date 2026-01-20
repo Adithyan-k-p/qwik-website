@@ -1,0 +1,600 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Settings - Qwik{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-container {
+        width: 900px; max-width: 95%; margin: 30px auto;
+        background: var(--bg-card); border-radius: var(--card-radius);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex;
+        overflow: hidden; min-height: 80vh;
+    }
+
+    /* LEFT SIDEBAR */
+    .settings-nav {
+        width: 250px; background: var(--bg-body); padding: 20px 0;
+        border-right: 1px solid var(--bg-hover); flex-shrink: 0;
+    }
+    .s-nav-item {
+        padding: 15px 25px; cursor: pointer; font-weight: 500;
+        color: var(--text-secondary); display: flex; align-items: center; gap: 10px; transition: 0.2s;
+    }
+    .s-nav-item:hover { background: var(--bg-hover); color: var(--text-main); }
+    .s-nav-item.active {
+        background: var(--bg-card); color: var(--accent-solid);
+        border-left: 4px solid var(--accent-solid); font-weight: 600;
+    }
+    .s-nav-item i { width: 20px; text-align: center; }
+
+    /* RIGHT CONTENT */
+    .settings-content { flex-grow: 1; padding: 40px; overflow-y: auto; }
+    
+    .tab-pane { display: none; animation: fadeIn 0.3s; }
+    .tab-pane.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    h2 { margin-bottom: 25px; font-weight: 600; border-bottom: 1px solid var(--bg-hover); padding-bottom: 15px; }
+    h3 { font-size: 1.1rem; margin: 20px 0 10px; color: var(--text-main); }
+
+    /* FORMS */
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; }
+    .form-control {
+        width: 100%; padding: 10px 15px; border-radius: 8px; border: 1px solid #dadde1;
+        background: var(--bg-body); color: var(--text-main); outline: none; transition: 0.2s;
+    }
+    .form-control:focus { border-color: var(--accent-solid); }
+    .btn-save {
+        background: var(--accent-gradient); color: white; border: none; padding: 10px 24px;
+        border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem;
+    }
+
+    /* TOGGLES */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid var(--bg-hover); }
+    .toggle-switch { position: relative; width: 50px; height: 26px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--accent-solid); }
+    input:checked + .slider:before { transform: translateX(24px); }
+
+    /* PASSWORD SECTION STYLES */
+    .password-section-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 20px 0; border-bottom: 1px solid var(--bg-hover); cursor: pointer;
+    }
+    .password-form-container {
+        display: none; /* Hidden by default */
+        padding: 20px 0;
+        background: var(--bg-body);
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 15px;
+    }
+    
+    .password-input-wrapper { position: relative; width: 100%; }
+    .form-control {
+        width: 100%; padding: 12px 45px 12px 15px; /* Room for eye icon */
+        border-radius: 8px; border: 1px solid #dadde1;
+        background: var(--bg-card); color: var(--text-main); outline: none; transition: 0.2s;
+        font-size: 0.95rem;
+    }
+    .form-control:focus { border-color: var(--accent-solid); box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2); }
+    
+    .field-icon {
+        position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+        color: var(--text-secondary); cursor: pointer; font-size: 1rem;
+    }
+    
+    /* VALIDATION LIST */
+    .validation-list { list-style: none; margin-top: 10px; padding: 0; font-size: 0.85rem; }
+    .v-item { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); margin-bottom: 5px; transition: 0.2s; }
+    .v-item i { font-size: 0.8rem; }
+    .v-item.valid { color: #4cd137; }
+    .v-item.valid i:before { content: "\f00c"; } /* Check */
+    .v-item.invalid { color: var(--text-secondary); }
+    .v-item.invalid i:before { content: "\f111"; } /* Circle */
+
+    .btn-save { background: var(--accent-gradient); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; width: 100%; margin-top: 15px; opacity: 0.5; pointer-events: none; transition: 0.3s; }
+    .btn-save.active { opacity: 1; pointer-events: all; }
+
+    /* ACTIVITY LISTS */
+    .activity-list { display: flex; flex-direction: column; gap: 15px; }
+    .activity-item {
+        display: flex; gap: 15px; padding: 15px; background: var(--bg-body); border-radius: 10px;
+        align-items: center; position: relative;
+    }
+    .act-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+    .act-info { flex-grow: 1; overflow: hidden; }
+    .act-info p { margin-bottom: 5px; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .act-meta { font-size: 0.8rem; color: var(--text-secondary); }
+    
+    .btn-act {
+        padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; border: none; cursor: pointer; font-weight: 600;
+        transition: 0.2s; flex-shrink: 0;
+    }
+    .btn-danger { background: rgba(224, 36, 94, 0.1); color: #e0245e; }
+    .btn-danger:hover { background: #e0245e; color: white; }
+    .btn-restore { background: #dadde1; color: var(--text-main); }
+    .btn-restore:hover { background: #c8cacc; }
+    .btn-edit { background: var(--bg-hover); color: var(--text-main); margin-right: 5px; }
+
+    @media (max-width: 768px) {
+        .settings-container { flex-direction: column; margin: 0; width: 100%; border-radius: 0; min-height: 100vh; }
+        .settings-nav { width: 100%; display: flex; overflow-x: auto; padding: 10px; border-bottom: 1px solid var(--bg-hover); border-right: none; }
+        .s-nav-item { padding: 10px 15px; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; }
+        .s-nav-item.active { border-left: none; border-bottom: 3px solid var(--accent-solid); }
+        .settings-content { padding: 20px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <!-- NAVIGATION -->
+    <div class="settings-nav">
+        <div class="s-nav-item active" onclick="switchTab('general', this)">
+            <i class="fa-solid fa-user-cog"></i> General
+        </div>
+        <div class="s-nav-item" onclick="switchTab('activity-posts', this)">
+            <i class="fa-solid fa-image"></i> My Posts
+        </div>
+        <div class="s-nav-item" onclick="switchTab('activity-archived', this)">
+            <i class="fa-solid fa-trash-restore"></i> Recycle Bin
+        </div>
+        <div class="s-nav-item" onclick="switchTab('activity-likes', this)">
+            <i class="fa-solid fa-heart"></i> Liked Posts
+        </div>
+        <div class="s-nav-item" onclick="switchTab('activity-comments', this)">
+            <i class="fa-solid fa-comment"></i> My Comments
+        </div>
+        
+        <a href="{% url 'accounts:logout' %}" class="s-nav-item" style="color: #e0245e;">
+            <i class="fa-solid fa-sign-out-alt"></i> Logout
+        </a>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="settings-content">
+        
+        <!-- MESSAGES -->
+        {% if messages %}
+            {% for message in messages %}
+                <div style="padding: 10px; background: {% if message.tags == 'error' %}#fde8e8{% else %}#def7ec{% endif %}; color: {% if message.tags == 'error' %}#c53030{% else %}#03543f{% endif %}; border-radius: 6px; margin-bottom: 20px;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- TAB 1: GENERAL -->
+        <div id="general" class="tab-pane active">
+            <h2>General Settings</h2>
+            <!-- Theme -->
+            <div class="toggle-row">
+                <div>
+                    <strong>Dark Mode</strong>
+                    <div style="font-size:0.85rem; color:var(--text-secondary);">Switch between light and dark themes</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="themeToggleCheckbox" onchange="toggleDarkMode()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Privacy -->
+            <form method="POST" action="{% url 'accounts:settings' %}">
+                {% csrf_token %}
+                <input type="hidden" name="update_privacy" value="true">
+                <div class="toggle-row">
+                    <div>
+                        <strong>Private Account</strong>
+                        <div style="font-size:0.85rem; color:var(--text-secondary);">Only followers can see your posts</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="is_private" {% if user.is_private %}checked{% endif %} onchange="this.form.submit()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </form>
+
+            <br>
+            <!-- CHANGE PASSWORD SECTION -->
+            <div class="password-section-header" onclick="togglePasswordForm()">
+                <div>
+                    <h3>Change Password</h3>
+                    <span style="font-size:0.85rem; color:var(--text-secondary);">Update your security credentials</span>
+                </div>
+                <i class="fa-solid fa-chevron-down" id="pw-chevron"></i>
+            </div>
+
+            <div class="password-form-container" id="passwordFormContainer">
+                <form method="POST" action="{% url 'accounts:settings' %}" id="changePasswordForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="change_password" value="true">
+                    
+                    <!-- We manually render fields to insert Icons and IDs -->
+                    
+                    <!-- Old Password -->
+                    <div class="form-group">
+                        <label>Old Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" name="old_password" class="form-control" placeholder="Enter current password">
+                            <i class="fa-regular fa-eye field-icon" onclick="toggleVisibility(this)"></i>
+                        </div>
+                    </div>
+
+                    <!-- New Password -->
+                    <div class="form-group">
+                        <label>New Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" name="new_password1" id="newPass" class="form-control" placeholder="Enter new password">
+                            <i class="fa-regular fa-eye field-icon" onclick="toggleVisibility(this)"></i>
+                        </div>
+                        <!-- Validation Checklist -->
+                        <ul class="validation-list">
+                            <li id="req-len" class="v-item invalid"><i class="fa-solid fa-circle"></i> 8-32 Characters</li>
+                            <li id="req-upper" class="v-item invalid"><i class="fa-solid fa-circle"></i> At least 1 Uppercase Letter</li>
+                            <li id="req-digit" class="v-item invalid"><i class="fa-solid fa-circle"></i> At least 1 Number</li>
+                        </ul>
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="form-group">
+                        <label>Confirm New Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" name="new_password2" id="confirmPass" class="form-control" placeholder="Confirm new password">
+                            <i class="fa-regular fa-eye field-icon" onclick="toggleVisibility(this)"></i>
+                        </div>
+                        <small id="match-msg" style="color:#e0245e; display:none;">Passwords do not match.</small>
+                    </div>
+
+                    <button type="submit" class="btn-save" id="submitPwBtn">Update Password</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB: MY POSTS (Active) -->
+        <div id="activity-posts" class="tab-pane">
+            <h2>Manage Your Posts</h2>
+            <div class="activity-list">
+                {% for post in my_posts %}
+                <div class="activity-item" id="post-item-{{ post.id }}">
+                    {% if post.image %}
+                        <img src="{{ post.image.url }}" class="act-thumb">
+                    {% else %}
+                        <div class="act-thumb" style="background:#eee;"></div>
+                    {% endif %}
+                    <div class="act-info">
+                        <p id="caption-{{ post.id }}">{{ post.caption }}</p>
+                        <span class="act-meta">{{ post.likes.count }} Likes &bull; {{ post.comments.count }} Comments &bull; {{ post.created_at|date:"M d, Y" }}</span>
+                        <!-- Edit Form -->
+                        <div id="edit-box-{{ post.id }}" style="display:none; margin-top:5px;">
+                            <input type="text" id="input-caption-{{ post.id }}" value="{{ post.caption }}" class="form-control" style="padding:5px;">
+                            <div style="margin-top:5px;">
+                                <button onclick="saveCaption({{ post.id }})" class="btn-act" style="background:var(--accent-solid); color:white;">Save</button>
+                                <button onclick="toggleEdit({{ post.id }})" class="btn-act">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:5px;">
+                        <button class="btn-act btn-edit" onclick="toggleEdit({{ post.id }})">Edit</button>
+                        <button class="btn-act btn-danger" onclick="deletePost({{ post.id }})">Delete</button>
+                    </div>
+                </div>
+                {% empty %}
+                    <p style="color:var(--text-secondary)">You haven't posted anything yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- TAB: ARCHIVED / RECYCLE BIN -->
+        <div id="activity-archived" class="tab-pane">
+            <h2>Recycle Bin</h2>
+            <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:15px;">Posts you deleted are stored here. You can restore them.</p>
+            <div class="activity-list" id="archived-list">
+                {% for post in archived_posts %}
+                <div class="activity-item" id="archived-item-{{ post.id }}">
+                    {% if post.image %}
+                        <img src="{{ post.image.url }}" class="act-thumb" style="opacity:0.6;">
+                    {% else %}
+                        <div class="act-thumb" style="background:#eee;"></div>
+                    {% endif %}
+                    <div class="act-info">
+                        <p style="text-decoration:line-through; color:var(--text-secondary);">{{ post.caption }}</p>
+                        <span class="act-meta">Deleted</span>
+                    </div>
+                    <button class="btn-act btn-restore" onclick="restorePost({{ post.id }})">
+                        <i class="fa-solid fa-rotate-left"></i> Restore
+                    </button>
+                </div>
+                {% empty %}
+                    <p style="color:var(--text-secondary)">Trash is empty.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- TAB: LIKES -->
+        <div id="activity-likes" class="tab-pane">
+            <h2>Posts You've Liked</h2>
+            <div class="activity-list">
+                {% for like in my_likes %}
+                <div class="activity-item" id="like-item-{{ like.post.id }}">
+                    <a href="{% url 'posts:home' %}">
+                        {% if like.post.image %}
+                            <img src="{{ like.post.image.url }}" class="act-thumb">
+                        {% else %}
+                            <div class="act-thumb" style="background:#eee;"></div>
+                        {% endif %}
+                    </a>
+                    <div class="act-info">
+                        <p>Liked <b>{{ like.post.user.username }}</b>'s post</p>
+                        <span class="act-meta">{{ like.created_at|date:"M d, Y" }}</span>
+                    </div>
+                    <button class="btn-act btn-danger" onclick="unlikePost({{ like.post.id }})">Unlike</button>
+                </div>
+                {% empty %}
+                    <p style="color:var(--text-secondary)">You haven't liked any posts yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- TAB: COMMENTS -->
+        <div id="activity-comments" class="tab-pane">
+            <h2>Your Comments</h2>
+            <div class="activity-list">
+                {% for comment in my_comments %}
+                <div class="activity-item" id="comment-item-{{ comment.id }}">
+                    <div class="act-info">
+                        <p>"{{ comment.text }}"</p>
+                        <span class="act-meta">On <b>{{ comment.post.user.username }}</b>'s post &bull; {{ comment.created_at|date:"M d, Y" }}</span>
+                    </div>
+                    <button class="btn-act btn-danger" onclick="deleteComment({{ comment.id }})">Delete</button>
+                </div>
+                {% empty %}
+                    <p style="color:var(--text-secondary)">No comments found.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- TAB SWITCHING ---
+    {% comment %} function switchTab(tabId, navItem) {
+        document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.s-nav-item').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        navItem.classList.add('active');
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabId);
+        window.history.pushState({}, '', url);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab') || 'general';
+        const tabEl = document.getElementById(tab);
+        if(tabEl) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+            tabEl.classList.add('active');
+            document.querySelectorAll('.s-nav-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.s-nav-item').forEach(el => {
+                if(el.getAttribute('onclick') && el.getAttribute('onclick').includes(tab)) {
+                    el.classList.add('active');
+                }
+            });
+        }
+        
+        // Theme Checkbox Sync
+        const themeCheck = document.getElementById('themeToggleCheckbox');
+        if(document.body.classList.contains('dark-mode')) themeCheck.checked = true;
+        themeCheck.addEventListener('change', () => document.body.classList.toggle('dark-mode'));
+    }); {% endcomment %}
+
+    // --- 1. THEME SYNC ---
+    document.addEventListener("DOMContentLoaded", () => {
+        const themeCheck = document.getElementById('themeToggleCheckbox');
+        if(document.documentElement.classList.contains('dark-mode')) {
+            themeCheck.checked = true;
+        }
+        
+        // Tab Persistence
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab') || 'general';
+        switchTab(tab, document.querySelector(`.s-nav-item[onclick*="${tab}"]`));
+    });
+
+    function switchTab(tabId, navItem) {
+        if(!navItem) return;
+        document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.s-nav-item').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        navItem.classList.add('active');
+    }
+
+    // --- 2. PASSWORD TOGGLE LOGIC ---
+    function togglePasswordForm() {
+        const container = document.getElementById('passwordFormContainer');
+        const icon = document.getElementById('pw-chevron');
+        if (container.style.display === 'block') {
+            container.style.display = 'none';
+            icon.className = 'fa-solid fa-chevron-down';
+        } else {
+            container.style.display = 'block';
+            icon.className = 'fa-solid fa-chevron-up';
+        }
+    }
+
+    function toggleVisibility(icon) {
+        const input = icon.previousElementSibling;
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'fa-regular fa-eye-slash field-icon';
+        } else {
+            input.type = 'password';
+            icon.className = 'fa-regular fa-eye field-icon';
+        }
+    }
+
+    // --- 3. RUNTIME PASSWORD VALIDATION ---
+    const newPassInput = document.getElementById('newPass');
+    const confirmPassInput = document.getElementById('confirmPass');
+    const submitBtn = document.getElementById('submitPwBtn');
+    
+    // Requirements
+    const reqLen = document.getElementById('req-len');
+    const reqUpper = document.getElementById('req-upper');
+    const reqDigit = document.getElementById('req-digit');
+
+    function validatePassword() {
+        const val = newPassInput.value;
+        let isValid = true;
+
+        // 1. Length 8-32
+        if (val.length >= 8 && val.length <= 32) {
+            reqLen.classList.replace('invalid', 'valid');
+        } else {
+            reqLen.classList.replace('valid', 'invalid');
+            isValid = false;
+        }
+
+        // 2. Uppercase
+        if (/(?=.*[A-Z])/.test(val)) {
+            reqUpper.classList.replace('invalid', 'valid');
+        } else {
+            reqUpper.classList.replace('valid', 'invalid');
+            isValid = false;
+        }
+
+        // 3. Digit
+        if (/(?=.*\d)/.test(val)) {
+            reqDigit.classList.replace('invalid', 'valid');
+        } else {
+            reqDigit.classList.replace('valid', 'invalid');
+            isValid = false;
+        }
+        
+        // 4. Match Confirmation
+        const confirmVal = confirmPassInput.value;
+        const matchMsg = document.getElementById('match-msg');
+        
+        if (confirmVal.length > 0 && val !== confirmVal) {
+            matchMsg.style.display = 'block';
+            isValid = false;
+        } else {
+            matchMsg.style.display = 'none';
+        }
+
+        // Enable/Disable Button
+        if (isValid && confirmVal === val && val.length > 0) {
+            submitBtn.classList.add('active');
+        } else {
+            submitBtn.classList.remove('active');
+        }
+    }
+
+    newPassInput.addEventListener('keyup', validatePassword);
+    confirmPassInput.addEventListener('keyup', validatePassword);
+
+
+    // --- ACTIVITY ACTIONS ---
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // 1. Unlike
+    function unlikePost(postId) {
+        if(!confirm("Are you sure you want to unlike this post?")) return;
+        fetch(`/posts/like/${postId}/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}
+        }).then(res => res.json()).then(data => {
+            if(!data.liked) document.getElementById(`like-item-${postId}`).remove();
+        });
+    }
+
+    // 2. Delete Comment
+    function deleteComment(commentId) {
+        if(!confirm("Delete this comment permanently?")) return;
+        fetch(`/posts/delete-comment/${commentId}/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken')}
+        }).then(res => res.json()).then(data => {
+            if(data.status === 'success') document.getElementById(`comment-item-${commentId}`).remove();
+        });
+    }
+
+    // 3. Delete Post (Archive)
+    function deletePost(postId) {
+        if(!confirm("Move to Recycle Bin? You can restore it later.")) return;
+        fetch(`/posts/delete/${postId}/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken')}
+        }).then(res => res.json()).then(data => {
+            if(data.status === 'success') {
+                document.getElementById(`post-item-${postId}`).remove();
+                // Optionally reload or visually indicate item moved to Recycle Bin tab
+            }
+        });
+    }
+
+    // 4. Restore Post
+    function restorePost(postId) {
+        if(!confirm("Restore this post to your profile?")) return;
+        fetch(`/posts/restore/${postId}/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken')}
+        }).then(res => res.json()).then(data => {
+            if(data.status === 'success') {
+                document.getElementById(`archived-item-${postId}`).remove();
+            } else if (data.status === 'expired') {
+                alert(data.message);
+                document.getElementById(`archived-item-${postId}`).remove();
+            }
+        });
+    }
+
+    // 5. Edit Caption
+    function toggleEdit(postId) {
+        const captionP = document.getElementById(`caption-${postId}`);
+        const editBox = document.getElementById(`edit-box-${postId}`);
+        if (editBox.style.display === "none") {
+            editBox.style.display = "block";
+            captionP.style.display = "none";
+        } else {
+            editBox.style.display = "none";
+            captionP.style.display = "block";
+        }
+    }
+
+    function saveCaption(postId) {
+        const newText = document.getElementById(`input-caption-${postId}`).value;
+        const formData = new FormData();
+        formData.append('caption', newText);
+        fetch(`/posts/update-caption/${postId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {'X-CSRFToken': getCookie('csrftoken')}
+        }).then(res => res.json()).then(data => {
+            if(data.status === 'success') {
+                document.getElementById(`caption-${postId}`).innerText = data.new_caption;
+                toggleEdit(postId);
+            }
+        });
+    }
+</script>
+{% endblock %}
