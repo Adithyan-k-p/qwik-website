@@ -5,7 +5,9 @@ from django.http import JsonResponse
 from accounts.models import User, Follow
 from .models import Thread
 from typing import List, Any
+from django.views.decorators.cache import never_cache
 
+@never_cache
 @login_required
 def inbox_view(request):
     my_pk = request.user.pk
@@ -49,6 +51,7 @@ def inbox_view(request):
         'suggestions': suggestions
     })
 
+@never_cache
 @login_required
 def search_users_ajax(request):
     query = request.GET.get('q', '').strip()
@@ -65,7 +68,7 @@ def search_users_ajax(request):
         })
     return JsonResponse({'users': results})
 
-
+@never_cache
 @login_required
 def chat_room_view(request, username: str):
     other_user = get_object_or_404(User, username=username)
