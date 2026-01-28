@@ -39,6 +39,12 @@ class Post(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_flagged = models.BooleanField(default=False)
+    
+    # Deletion tracking: if deleted_by is None, user deleted it; if set, admin deleted it
+    deleted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='posts_deleted')
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deletion_reason = models.CharField(max_length=255, blank=True, default='')  # "user_deleted", "admin_flagged", "admin_deleted"
 
     def save(self, *args, **kwargs):
         if self.post_type == 'temporary' and not self.expires_at:

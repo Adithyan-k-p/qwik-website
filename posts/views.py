@@ -8,6 +8,7 @@ from django.db.models import Count
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils.timesince import timesince
+from django.utils import timezone
 from .forms import PostForm
 from accounts.models import User, Follow
 from .models import Post, Like, Comment
@@ -271,6 +272,9 @@ def delete_post_view(request, post_id):
     if request.user == post.user:
         post.is_archived = True
         post.is_active = False # Hide from feed
+        post.deleted_by = None  # User deleted it, not admin
+        post.deleted_at = timezone.now()
+        post.deletion_reason = 'user_deleted'
         post.save()
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
@@ -279,9 +283,13 @@ def delete_post_view(request, post_id):
 def restore_post_view(request, post_id):
     """ Restore: User brings back the post """
     post = get_object_or_404(Post, pk=post_id)
-    if request.user == post.user:
+    
+    # Only allow restore if user owns the post AND user deleted it (not admin)
+    if request.user == post.user and post.deleted_by is None:
         post.is_archived = False
         post.is_active = True # Show in feed again
+        post.deleted_at = None
+        post.deletion_reason = ''
         
         # Optional: Check if it was a temporary post that already expired
         # The save() method in models.py handles expiration logic, so we just save()
@@ -292,7 +300,9 @@ def restore_post_view(request, post_id):
              return JsonResponse({'status': 'expired', 'message': 'Post restored but has expired.'})
 
         return JsonResponse({'status': 'success'})
-    return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
+    
+    # Post was deleted by admin, cannot restore
+    return JsonResponse({'status': 'error', 'message': 'This post was deleted by admin and cannot be restored.'}, status=403)
 
 # ... keep update_post_caption and delete_comment_view as they were ...
 @login_required

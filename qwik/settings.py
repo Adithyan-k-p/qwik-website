@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "posts",
     "chats",
     "channels",
+    "custom_admin", 
 ]
 
 # Custom User Model

@@ -1,0 +1,49 @@
+{% for post in posts %}
+<tr>
+    <td>
+        {% if post.image %}
+            <div style="cursor:pointer;" onclick="openPostModal('{{ post.id }}')">
+                <img src="{{ post.image.url }}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;">
+            </div>
+        {% else %}
+            <span style="color:#999; font-size:0.8rem;">Text</span>
+        {% endif %}
+    </td>
+    <td>
+        <b style="cursor:pointer;" onclick="openPostModal('{{ post.id }}')">{{ post.caption|truncatechars:40 }}</b><br>
+        <span style="font-size:0.75rem;">by {{ post.user.username }} • {{ post.created_at|date:"M d" }}</span>
+    </td>
+    <td>
+        {% if post.is_flagged %}
+            <span class="status-badge badge-red">NSFW</span>
+        {% endif %}
+        {% if post.is_archived %}
+            <span class="status-badge badge-gray">Deleted</span>
+        {% endif %}
+    </td>
+    <td>
+        <div style="display:flex; gap:5px;">
+            <!-- View Button -->
+            <button onclick="openPostModal('{{ post.id }}')" class="status-badge badge-gray" style="border:none; cursor:pointer;">
+                <i class="fa-regular fa-eye"></i>
+            </button>
+            
+            <!-- Flag NSFW -->
+            <a href="{% url 'custom_admin:flag_post' post.id %}" class="status-badge badge-red" style="text-decoration:none;">
+                <i class="fa-solid fa-flag"></i>
+            </a>
+
+            <!-- Delete/Restore -->
+            <a href="{% url 'custom_admin:delete_post' post.id %}" class="status-badge badge-gray" style="text-decoration:none;">
+                {% if post.is_archived %}
+                    <i class="fa-solid fa-rotate-left"></i> <!-- Restore -->
+                {% else %}
+                    <i class="fa-solid fa-trash"></i>
+                {% endif %}
+            </a>
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr><td colspan="4" style="text-align:center;">No posts found.</td></tr>
+{% endfor %}

@@ -1,0 +1,34 @@
+{% for user in users %}
+<tr>
+    <td>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}https://ui-avatars.com/api/?name={{ user.username }}{% endif %}" 
+                 style="width: 40px; height: 40px; border-radius: 50%;">
+            <b>{{ user.username }}</b>
+        </div>
+    </td>
+    <td>
+        <span class="status-badge badge-blue">{{ user.role|title }}</span>
+    </td>
+    <td>
+        {% if user.is_active %}
+            <span class="status-badge badge-green">Active</span>
+        {% else %}
+            <span class="status-badge badge-red">Banned</span>
+        {% endif %}
+    </td>
+    <td style="font-size: 0.9rem; color: #a3aed0;">
+        {{ user.created_at|date:"M d, Y" }}
+    </td>
+    <td>
+        {% if user != request.user %}
+            <button class="btn-ban" 
+                    onclick="openRemarkModal('{% url 'custom_admin:user_ban' user.id %}', '{{ user.admin_notes|escapejs }}')">
+                {% if user.is_active %}Ban{% else %}Unban{% endif %}
+            </button>
+        {% endif %}
+    </td>
+</tr>
+{% empty %}
+<tr><td colspan="5" style="text-align:center;">No users found.</td></tr>
+{% endfor %}

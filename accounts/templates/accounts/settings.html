@@ -303,7 +303,7 @@
                     {% endif %}
                     <div class="act-info">
                         <p style="text-decoration:line-through; color:var(--text-secondary);">{{ post.caption }}</p>
-                        <span class="act-meta">Deleted</span>
+                        <span class="act-meta">Deleted by you</span>
                     </div>
                     <button class="btn-act btn-restore" onclick="restorePost({{ post.id }})">
                         <i class="fa-solid fa-rotate-left"></i> Restore
@@ -313,6 +313,34 @@
                     <p style="color:var(--text-secondary)">Trash is empty.</p>
                 {% endfor %}
             </div>
+            
+            {% if admin_deleted_posts %}
+            <hr style="margin:30px 0; border:none; border-top:1px solid var(--bg-hover);">
+            <h3 style="color:#EE5D50; margin-top:30px;">Removed by Admin</h3>
+            <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:15px;">These posts were removed by administrators and cannot be restored.</p>
+            <div class="activity-list">
+                {% for post in admin_deleted_posts %}
+                <div class="activity-item" id="admin-deleted-item-{{ post.id }}" style="opacity:0.7;">
+                    {% if post.image %}
+                        <img src="{{ post.image.url }}" class="act-thumb" style="opacity:0.5; filter:grayscale(100%);">
+                    {% else %}
+                        <div class="act-thumb" style="background:#eee;"></div>
+                    {% endif %}
+                    <div class="act-info">
+                        <p style="text-decoration:line-through; color:var(--text-secondary);">{{ post.caption }}</p>
+                        <span class="act-meta">
+                            {% if post.is_flagged %}
+                                <i class="fa-solid fa-flag"></i> Flagged as NSFW by Admin
+                            {% else %}
+                                <i class="fa-solid fa-ban"></i> Deleted by Admin
+                            {% endif %}
+                        </span>
+                    </div>
+                    <span style="color:#EE5D50; font-size:0.85rem; padding:8px 12px; background:rgba(238,93,80,0.1); border-radius:6px;">Cannot Restore</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
 
         <!-- TAB: LIKES -->
