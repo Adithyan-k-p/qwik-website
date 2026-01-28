@@ -1,0 +1,30 @@
+{% extends 'custom_admin/admin_base.html' %}
+{% block admin_body %}
+<div class="page-header">
+    <h4>Comment Moderation</h4>
+    <h1>Manage Comments</h1>
+</div>
+
+<div class="filter-container">
+    <div class="search-box">
+        <i class="fa-solid fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Search comments...">
+    </div>
+</div>
+
+<div class="data-card">
+    <table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Comment</th>
+                <th>Post</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            {% include 'custom_admin/partials/comment_rows.html' %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

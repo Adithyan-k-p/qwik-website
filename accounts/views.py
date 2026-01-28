@@ -53,7 +53,11 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            return redirect('posts:home')
+            # if user.role == 'admin' or user.is_superuser:
+            if user.is_superuser:
+                return redirect('custom_admin:dashboard')
+            else:
+                return redirect('posts:home')
     else:
         # form = AuthenticationForm()
         form = LoginForm()
@@ -293,9 +297,13 @@ def settings_view(request):
     my_posts = Post.objects.filter(user=user, is_active=True, is_archived=False)\
                            .order_by('-created_at')
 
-    # 2. Recycle Bin
-    archived_posts = Post.objects.filter(user=user, is_archived=True)\
+    # 2. Recycle Bin (Only user-deleted posts, not admin-deleted)
+    archived_posts = Post.objects.filter(user=user, is_archived=True, deleted_by__isnull=True)\
                                  .order_by('-created_at')
+    
+    # 3. Admin-Deleted Posts (show but no restore option)
+    admin_deleted_posts = Post.objects.filter(user=user, is_archived=True, deleted_by__isnull=False)\
+                                      .order_by('-created_at')
 
     # 3. Liked Posts
     my_likes = Like.objects.filter(user=user, post__is_active=True)\
@@ -311,6 +319,7 @@ def settings_view(request):
         'password_form': password_form,
         'my_posts': my_posts,
         'archived_posts': archived_posts,
+        'admin_deleted_posts': admin_deleted_posts,
         'my_likes': my_likes,
         'my_comments': my_comments,
         'active_tab': request.GET.get('tab', 'general') 

@@ -23,6 +23,7 @@ class User(AbstractUser):
     last_seen = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    admin_notes = models.TextField(blank=True, null=True, help_text="Admin remarks regarding bans or warnings")
 
     def __str__(self):
         return self.username

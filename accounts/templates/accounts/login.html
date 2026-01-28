@@ -187,61 +187,7 @@
         
         .login-btn:active { transform: translateY(0); }
 
-        /* Divider */
-        .divider {
-            margin: 25px 0;
-            position: relative;
-            text-align: center;
-        }
-        .divider::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            width: 100%;
-            height: 1px;
-            background: var(--border-color);
-            z-index: 1;
-        }
-        .divider span {
-            background: var(--bg-card);
-            padding: 0 10px;
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-            position: relative;
-            z-index: 2;
-        }
-
-        /* Social Login */
-        .social-btns {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-bottom: 25px;
-        }
-
-        .social-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 1px solid var(--border-color);
-            background: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 1.2rem;
-        }
-
-        .social-btn.google { color: #DB4437; }
-        .social-btn.facebook { color: #4267B2; }
-        .social-btn.apple { color: #000; }
-
-        .social-btn:hover {
-            background-color: var(--input-bg);
-            transform: scale(1.05);
-        }
+    
 
         /* Footer */
         .card-footer {
@@ -327,18 +273,8 @@
                 <button type="submit" class="login-btn">Log In</button>
             </form>
 
-            <!-- Divider -->
-            <div class="divider">
-                <span>OR CONTINUE WITH</span>
-            </div>
-
-            <!-- Social Icons (Visual Only for now) -->
-            <div class="social-btns">
-                <button class="social-btn google"><i class="fa-brands fa-google"></i></button>
-                <button class="social-btn facebook"><i class="fa-brands fa-facebook-f"></i></button>
-                <button class="social-btn apple"><i class="fa-brands fa-apple"></i></button>
-            </div>
-
+            <br>
+            
             <!-- Footer -->
             <div class="card-footer">
                 Don't have an account? <a href="{% url 'accounts:signup' %}">Sign up</a>

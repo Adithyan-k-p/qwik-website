@@ -1,0 +1,36 @@
+{% extends 'custom_admin/admin_base.html' %}
+{% block admin_body %}
+<div class="page-header">
+    <h4>User Management</h4>
+    <h1>All Users</h1>
+</div>
+
+<div class="filter-container">
+    <div class="search-box">
+        <i class="fa-solid fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Search users...">
+    </div>
+    <select id="filterSelect" class="custom-select">
+        <option value="all">All Users</option>
+        <option value="active">Active Only</option>
+        <option value="banned">Banned Only</option>
+    </select>
+</div>
+
+<div class="data-card">
+    <table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            {% include 'custom_admin/partials/user_rows.html' %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'custom_admin/admin_base.html' %}
+{% block admin_body %}
+<div class="page-header">
+    <h4>Content Moderation</h4>
+    <h1>Manage Posts</h1>
+</div>
+
+<div class="filter-container">
+    <div class="search-box">
+        <i class="fa-solid fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Search posts or users...">
+    </div>
+    <select id="filterSelect" class="custom-select">
+        <option value="live">Live Posts</option>
+        <option value="archived">Deleted/Archived</option>
+        <option value="flagged">NSFW/Flagged</option>
+    </select>
+</div>
+
+<div class="data-card">
+    <table>
+        <thead>
+            <tr>
+                <th>Image</th>
+                <th>Details</th>
+                <th>Flags</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            {% include 'custom_admin/partials/post_rows.html' %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
