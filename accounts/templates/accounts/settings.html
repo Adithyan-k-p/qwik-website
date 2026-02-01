@@ -128,6 +128,47 @@
         .s-nav-item.active { border-left: none; border-bottom: 3px solid var(--accent-solid); }
         .settings-content { padding: 20px; }
     }
+
+    /* Custom Confirmation Modal Styling */
+    .action-modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0; top: 0; width: 100%; height: 100%;
+        background-color: rgba(0,0,0,0.6);
+        align-items: center; justify-content: center;
+        backdrop-filter: blur(2px);
+    }
+
+    .action-card {
+        background: var(--bg-card);
+        width: 90%; max-width: 380px;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        text-align: center;
+        animation: modalPop 0.2s ease-out;
+    }
+
+    .action-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 10px; color: var(--text-main); }
+    .action-desc { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 25px; line-height: 1.4; }
+
+    .action-btn-group { display: flex; gap: 12px; }
+    .action-btn-group button {
+        flex: 1; padding: 12px; border-radius: 10px; border: none; 
+        font-weight: 600; cursor: pointer; transition: 0.2s; font-family: inherit;
+    }
+
+    .btn-cancel { background: var(--bg-hover); color: var(--text-main); }
+    .btn-cancel:hover { opacity: 0.8; }
+
+    .btn-confirm-delete { background: #e0245e; color: white; }
+    .btn-confirm-delete:hover { background: #c51d50; }
+
+    @keyframes modalPop { 
+        from { transform: scale(0.9); opacity: 0; } 
+        to { transform: scale(1); opacity: 1; } 
+    }
 </style>
 {% endblock %}
 
@@ -389,39 +430,20 @@
     </div>
 </div>
 
-<script>
-    // --- TAB SWITCHING ---
-    {% comment %} function switchTab(tabId, navItem) {
-        document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.s-nav-item').forEach(el => el.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        navItem.classList.add('active');
-        const url = new URL(window.location);
-        url.searchParams.set('tab', tabId);
-        window.history.pushState({}, '', url);
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const tab = urlParams.get('tab') || 'general';
-        const tabEl = document.getElementById(tab);
-        if(tabEl) {
-            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
-            tabEl.classList.add('active');
-            document.querySelectorAll('.s-nav-item').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.s-nav-item').forEach(el => {
-                if(el.getAttribute('onclick') && el.getAttribute('onclick').includes(tab)) {
-                    el.classList.add('active');
-                }
-            });
-        }
+<!-- CUSTOM CONFIRMATION MODAL -->
+<div id="qwikConfirmModal" class="action-modal">
+    <div class="action-card">
+        <div class="action-title" id="confirmTitle">Confirm Action</div>
+        <p class="action-desc" id="confirmMessage">Are you sure you want to proceed?</p>
         
-        // Theme Checkbox Sync
-        const themeCheck = document.getElementById('themeToggleCheckbox');
-        if(document.body.classList.contains('dark-mode')) themeCheck.checked = true;
-        themeCheck.addEventListener('change', () => document.body.classList.toggle('dark-mode'));
-    }); {% endcomment %}
+        <div class="action-btn-group">
+            <button class="btn-cancel" onclick="closeConfirmModal()">Cancel</button>
+            <button class="btn-confirm-delete" id="confirmExecuteBtn">Confirm</button>
+        </div>
+    </div>
+</div>
 
+<script>
     // --- 1. THEME SYNC ---
     document.addEventListener("DOMContentLoaded", () => {
         const themeCheck = document.getElementById('themeToggleCheckbox');
@@ -544,55 +566,85 @@
         return cookieValue;
     }
 
+    let confirmCallback = null;
+
+    // Helper to open the modal
+    function qwikConfirm(title, message, callback) {
+        document.getElementById('confirmTitle').innerText = title;
+        document.getElementById('confirmMessage').innerText = message;
+        document.getElementById('qwikConfirmModal').style.display = 'flex';
+        confirmCallback = callback;
+    }
+
+    // Helper to close the modal
+    function closeConfirmModal() {
+        document.getElementById('qwikConfirmModal').style.display = 'none';
+        confirmCallback = null;
+    }
+
+    // Execute the stored action
+    document.getElementById('confirmExecuteBtn').addEventListener('click', () => {
+        if (confirmCallback) confirmCallback();
+        closeConfirmModal();
+    });
+
     // 1. Unlike
     function unlikePost(postId) {
-        if(!confirm("Are you sure you want to unlike this post?")) return;
+    qwikConfirm("Unlike Post?", "Are you sure you want to remove your like from this post?", () => {
         fetch(`/posts/like/${postId}/`, {
             method: 'POST',
             headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}
         }).then(res => res.json()).then(data => {
-            if(!data.liked) document.getElementById(`like-item-${postId}`).remove();
+            if(!data.liked) {
+                document.getElementById(`like-item-${postId}`).remove();
+                showQwikAlert("Post unliked");
+            }
         });
-    }
+    });
+}
 
     // 2. Delete Comment
     function deleteComment(commentId) {
-        if(!confirm("Delete this comment permanently?")) return;
-        fetch(`/posts/delete-comment/${commentId}/`, {
-            method: 'POST',
-            headers: {'X-CSRFToken': getCookie('csrftoken')}
-        }).then(res => res.json()).then(data => {
-            if(data.status === 'success') document.getElementById(`comment-item-${commentId}`).remove();
+        qwikConfirm("Delete Comment?", "This will permanently remove your comment. This action cannot be undone.", () => {
+            fetch(`/posts/delete-comment/${commentId}/`, {
+                method: 'POST',
+                headers: {'X-CSRFToken': getCookie('csrftoken')}
+            }).then(res => res.json()).then(data => {
+                if(data.status === 'success') {
+                    document.getElementById(`comment-item-${commentId}`).remove();
+                    showQwikAlert("Comment deleted");
+                }
+            });
         });
     }
 
     // 3. Delete Post (Archive)
     function deletePost(postId) {
-        if(!confirm("Move to Recycle Bin? You can restore it later.")) return;
-        fetch(`/posts/delete/${postId}/`, {
-            method: 'POST',
-            headers: {'X-CSRFToken': getCookie('csrftoken')}
-        }).then(res => res.json()).then(data => {
-            if(data.status === 'success') {
-                document.getElementById(`post-item-${postId}`).remove();
-                // Optionally reload or visually indicate item moved to Recycle Bin tab
-            }
+        qwikConfirm("Move to Recycle Bin?", "This post will be hidden from your profile. You can restore it later from the Recycle Bin.", () => {
+            fetch(`/posts/delete/${postId}/`, {
+                method: 'POST',
+                headers: {'X-CSRFToken': getCookie('csrftoken')}
+            }).then(res => res.json()).then(data => {
+                if(data.status === 'success') {
+                    document.getElementById(`post-item-${postId}`).remove();
+                    showQwikAlert("Post moved to Recycle Bin");
+                }
+            });
         });
     }
 
     // 4. Restore Post
     function restorePost(postId) {
-        if(!confirm("Restore this post to your profile?")) return;
-        fetch(`/posts/restore/${postId}/`, {
-            method: 'POST',
-            headers: {'X-CSRFToken': getCookie('csrftoken')}
-        }).then(res => res.json()).then(data => {
-            if(data.status === 'success') {
-                document.getElementById(`archived-item-${postId}`).remove();
-            } else if (data.status === 'expired') {
-                alert(data.message);
-                document.getElementById(`archived-item-${postId}`).remove();
-            }
+        qwikConfirm("Restore Post?", "This post will be visible on your profile again.", () => {
+            fetch(`/posts/restore/${postId}/`, {
+                method: 'POST',
+                headers: {'X-CSRFToken': getCookie('csrftoken')}
+            }).then(res => res.json()).then(data => {
+                if(data.status === 'success') {
+                    document.getElementById(`archived-item-${postId}`).remove();
+                    showQwikAlert("Post restored successfully");
+                }
+            });
         });
     }
 

@@ -11,7 +11,8 @@ class PostForm(forms.ModelForm):
             'caption': forms.Textarea(attrs={
                 'class': 'caption-input', 
                 'placeholder': 'Write a caption...',
-                'rows': 3
+                'rows': 3,
+                'required': True
             }),
             # 'media_url': forms.TextInput(attrs={
             #     'class': 'url-input', 
@@ -21,8 +22,9 @@ class PostForm(forms.ModelForm):
 
             'image': forms.FileInput(attrs={
                 'class': 'file-input', 
-                'id': 'fileInput', 
-                'style': 'display: none;'
+                'id': 'fileInput',
+                'style': 'display: none;',
+                'required': True,
             }),
 
             # We use RadioSelect for better UI styling (Buttons instead of dropdown)

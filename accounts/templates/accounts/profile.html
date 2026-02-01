@@ -10,9 +10,12 @@
     .profile-avatar { width: 150px; height: 150px; border-radius: 50%; border: 4px solid var(--bg-body); background: var(--accent-gradient); padding: 3px; }
     .profile-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #fff; }
     .profile-info { flex-grow: 1; }
-    .profile-top-row { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
-    .username { font-size: 1.5rem; font-weight: 300; }
-    
+    .profile-top-row { display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 25px; }
+    .user-header-row { display: flex; align-items: center; justify-content: flex-start; gap: 15px; }
+    .profile-action-buttons { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; /* Allows buttons to wrap on very small screens */ }
+    .username { font-size: 1.5rem; font-weight: 300; margin: 0; color: var(--text-main); }
+    .post-menu-container { display: flex; align-items: center; }
+
     /* BUTTONS */
     .edit-btn { background-color: var(--bg-hover); color: var(--text-main); padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; transition: 0.2s; text-decoration: none; display: inline-block; }
     .btn-primary { background: var(--accent-gradient); color: white; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; text-decoration: none; display: inline-block; }
@@ -193,29 +196,43 @@
             
             <div class="profile-info">
                 <div class="profile-top-row">
-                    <h2 class="username">{{ profile_user.username }}</h2>
+                    <div class="user-header-row">
+                        <h2 class="username">{{ profile_user.username }}</h2>
+                        
+                        {% if request.user != profile_user %}
+                            <!-- 3 Dot Menu (Visible only to visitors) -->
+                            <div class="post-menu-container">
+                                <button class="post-menu-btn" onclick="togglePostMenu(event, 'user-{{ profile_user.id }}')">
+                                    <i class="fa-solid fa-ellipsis" style="font-size: 1.3rem;"></i>
+                                </button>
+                                <div class="post-dropdown" id="menu-user-{{ profile_user.id }}" style="min-width: 180px;">
+                                    <div class="post-dropdown-item text-danger" onclick="openReportModal('user', '{{ profile_user.id }}')">
+                                        <i class="fa-regular fa-flag"></i> Report User
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
                     {% if request.user == profile_user %}
                         <a href="{% url 'accounts:edit_profile' %}" class="edit-btn">Edit Profile</a>
                     {% else %}
                         <!-- This is the MAIN Follow button (Reloads page) -->
-                        <a href="{% url 'accounts:follow_user' profile_user.username %}"
-                           class="{% if is_following %}btn-secondary{% else %}btn-primary{% endif %}">
-                            {% if is_following %}Following{% else %}Follow{% endif %}
-                        </a>
+                        <div id="follow-section-container" class="profile-action-buttons" style="display: flex; gap: 10px; align-items: center;">
+            
+                            <a href="{% url 'accounts:follow_user' profile_user.username %}" 
+                            id="main-follow-btn"
+                            class="{% if is_following %}btn-secondary{% else %}btn-primary{% endif %} ajax-profile-follow"
+                            data-username="{{ profile_user.username }}">
+                                {% if is_following %}Following{% else %}Follow{% endif %}
+                            </a>
 
-                        <!-- 3 Dot Menu -->
-                        <div class="post-menu-container" style="margin-left: 10px; z-index: 100;">
-                        <button class="post-menu-btn" onclick="togglePostMenu(event, 'user-{{ profile_user.id }}')">
-                            <i class="fa-solid fa-ellipsis" style="font-size: 1.3rem;"></i>
-                        </button>
-                        
-                        <!-- Dropdown -->
-                        <div class="post-dropdown" id="menu-user-{{ profile_user.id }}" style="min-width: 180px;">
-                            <div class="post-dropdown-item text-danger" onclick="openReportModal('user', '{{ profile_user.id }}')">
-                                <i class="fa-regular fa-flag"></i> Report User
-                            </div>
+                            <!-- Message Button: Only shows if User A follows User B -->
+                            {% if is_following %}
+                                <a href="{% url 'chats:chat_room' profile_user.username %}" class="edit-btn" id="message-btn">
+                                    <i class="fa-regular fa-paper-plane"></i> Message
+                                </a>
+                            {% endif %}
                         </div>
-                    </div>
                     {% endif %}
                 </div>
 
@@ -809,5 +826,63 @@
             }
         });
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const followBtn = document.querySelector('.ajax-profile-follow');
+        const container = document.getElementById('follow-section-container');
+
+        if (followBtn) {
+            followBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const username = this.dataset.username;
+                const url = this.href;
+
+                fetch(url, {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'followed') {
+                        // 1. Update Follow Button
+                        this.innerText = 'Following';
+                        this.classList.remove('btn-primary');
+                        this.classList.add('btn-secondary');
+
+                        // 2. Add Message Button if it doesn't exist
+                        if (!document.getElementById('message-btn')) {
+                            const msgBtn = document.createElement('a');
+                            msgBtn.href = `/chats/${username}/`; // Matches your chats URL pattern
+                            msgBtn.className = 'edit-btn';
+                            msgBtn.id = 'message-btn';
+                            msgBtn.innerHTML = '<i class="fa-regular fa-paper-plane"></i> Message';
+                            container.appendChild(msgBtn);
+                        }
+                    } else {
+                        // 1. Update Follow Button
+                        this.innerText = 'Follow';
+                        this.classList.remove('btn-secondary');
+                        this.classList.add('btn-primary');
+
+                        // 2. Remove Message Button
+                        const msgBtn = document.getElementById('message-btn');
+                        if (msgBtn) msgBtn.remove();
+                    }
+
+                    // 3. Update the Follower Count Stat on the page
+                    const followerStat = document.querySelector('.stat-clickable strong'); // First stat is usually followers
+                    if (followerStat) {
+                        // Logic to find the correct <li> based on text content if needed
+                        // For now, let's assume standard order: Posts, Followers, Following
+                        const stats = document.querySelectorAll('.profile-stats strong');
+                        if (stats.length >= 2) {
+                            stats[1].innerText = data.new_count; // Ensure your view returns 'new_count'
+                        }
+                    }
+                })
+                .catch(err => console.error("Follow error:", err));
+            });
+        }
+    });
     </script>
 {% endblock %}

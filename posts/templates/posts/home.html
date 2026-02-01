@@ -42,6 +42,12 @@
         flex-grow: 1;
     }
 
+    .modal-footer {
+        padding: 15px;
+        border-top: 1px solid var(--bg-hover);
+        background: var(--bg-card);
+    }
+
     .modal-close {
         cursor: pointer;
         font-size: 1.5rem;
@@ -61,6 +67,35 @@
         height: 40px;
         border-radius: 50%;
         object-fit: cover;
+    }
+
+    /* Separator Style */
+    .post-separator {
+        border: 0;
+        border-top: 1px solid var(--bg-hover);
+        margin: 10px 0;
+    }
+
+    /* Modal Input Styling */
+    .modal-input-group {
+        display: flex;
+        gap: 10px;
+    }
+    .modal-input-group input {
+        flex: 1;
+        padding: 10px;
+        border-radius: 20px;
+        border: 1px solid var(--bg-hover);
+        background: var(--bg-body);
+        color: var(--text-main);
+        outline: none;
+    }
+    .modal-input-group button {
+        background: transparent;
+        color: var(--accent-solid);
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
     }
 </style>
 {% endblock %}
@@ -144,7 +179,7 @@
                         <div class="left-actions">
                             <!-- LIKE COUNT -->
                             <button class="act-btn like-btn ajax-like-btn {% if post.id in liked_posts_ids %}liked{% endif %}" data-url="{% url 'posts:like_post' post.id %}" data-post-id="{{ post.id }}">
-                                <i class="{% if post.id in liked_posts_ids %}fa-solid fa-heart{% else %}fa-regular fa-heart{% endif %}"></i>
+                                <i class="{% if post.id in liked_posts_ids %}fa-solid fa-heart{% else %}fa-regular fa-heart{% endif %}"style="{% if post.id in liked_posts_ids %}color: #e0245e;{% endif %}"></i>
                             </button>
                             <span class="open-likes-modal" data-post-id="{{ post.id }}" style="cursor:pointer; font-weight:600;">
                                 <span class="like-count-{{ post.id }}">{{ post.like_count }}</span> likes
@@ -152,7 +187,8 @@
 
                             <!-- COMMENT ICON -->
                             <button class="act-btn open-comments-modal" data-post-id="{{ post.id }}">
-                                <i class="fa-regular fa-comment"></i> {{ post.comment_count }}
+                                <i class="fa-regular fa-comment"></i>
+                                <span class="comment-count-{{ post.id }}">{{ post.comment_count }}</span>
                             </button>
                         </div>
                         
@@ -168,6 +204,8 @@
                         {{ post.caption }}
                     </div>
                     {% endif %}
+
+                    <hr class="post-separator">
 
                     {% comment %} <!-- COMMENTS PREVIEW -->
                     <div class="comments-preview-{{ post.id }}" style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 5px;">
@@ -214,6 +252,10 @@
             </div>
             <div class="modal-body" id="modalBody">
                 <!-- Content loaded via AJAX -->
+            </div>
+
+            <div class="modal-footer" id="modalFooter" style="display: none;">
+                <!-- Form injected via JS -->
             </div>
         </div>
     </div>
@@ -276,8 +318,20 @@
                 .then(res => res.json())
                 .then(data => {
                     countSpan.innerText = data.like_count;
-                    icon.className = data.liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
-                    icon.style.color = data.liked ? '#e0245e' : '';
+                    //icon.className = data.liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+                    //icon.style.color = data.liked ? '#e0245e' : '';
+
+                    if (data.liked) {
+                        this.classList.add('liked');
+                        icon.classList.remove('fa-regular');
+                        icon.classList.add('fa-solid');
+                        icon.style.color = '#e0245e';
+                    } else {
+                        this.classList.remove('liked');
+                        icon.classList.remove('fa-solid');
+                        icon.classList.add('fa-regular');
+                        icon.style.color = ''; // Reset to inherited color (var(--text-main))
+                    }
                 });
             });
         });
@@ -306,7 +360,9 @@
                         // Update the count on the comment icon
                         const currentCount = parseInt(countSpan.innerText);
                         countSpan.innerText = currentCount + 1;
-                        alert("Comment posted!"); // Optional feedback
+                        if(typeof showQwikAlert === 'function') {
+                            showQwikAlert("Comment posted!");
+                        }
                     }
                 });
             });
@@ -316,16 +372,25 @@
         const modal = document.getElementById('qwikModal');
         const modalBody = document.getElementById('modalBody');
         const modalTitle = document.getElementById('modalTitle');
+        const modalFooter = document.getElementById('modalFooter');
         const closeBtn = document.querySelector('.modal-close');
 
-        closeBtn.onclick = () => modal.style.display = "none";
-        window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; };
+        function closeModal() {
+            modal.style.display = "none";
+            modalFooter.innerHTML = ""; // Clean up form
+            modalFooter.style.display = "none";
+        }
+
+        closeBtn.onclick = () => closeModal();
+        window.onclick = (e) => { if (e.target == modal) closeModal(); };
 
         document.querySelectorAll('.open-likes-modal').forEach(el => {
             el.addEventListener('click', () => {
                 const postId = el.dataset.postId;
                 modalTitle.innerText = "Likes";
-                modalBody.innerHTML = "Loading...";
+                //modalBody.innerHTML = "Loading...";
+                modalBody.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+                modalFooter.style.display = "none";
                 modal.style.display = "flex";
                 fetch(`/posts/get-likes/${postId}/`).then(r => r.json()).then(data => {
                     modalBody.innerHTML = data.likes.map(u => `
@@ -341,17 +406,85 @@
             el.addEventListener('click', () => {
                 const postId = el.dataset.postId;
                 modalTitle.innerText = "Comments";
-                modalBody.innerHTML = "Loading...";
+                modalBody.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i></div>';
                 modal.style.display = "flex";
+
+                modalFooter.style.display = "block";
+                modalFooter.innerHTML = `
+                    <form id="modalCommentForm" class="modal-input-group">
+                        <input type="text" id="modalCommentInput" placeholder="Write a comment..." required autocomplete="off">
+                        <button type="submit">Post</button>
+                    </form>
+                `;
+
                 fetch(`/posts/get-comments/${postId}/`).then(r => r.json()).then(data => {
-                    modalBody.innerHTML = data.comments.map(c => `
-                        <div class="user-row" style="align-items:start;">
-                            <a href="${c.profile_url}"><img src="${c.avatar}" style="width:30px;height:30px;"></a>
-                            <div>
-                                <a href="${c.profile_url}" style="text-decoration:none; color:inherit; font-weight:600;">${c.username}</a>
-                                <span style="margin-left:5px;">${c.text}</span>
-                            </div>
-                        </div>`).join('') || "No comments yet.";
+                    if(data.comments.length > 0) {
+                        modalBody.innerHTML = data.comments.map(c => `
+                            <div class="user-row" style="align-items:start;">
+                                <a href="${c.profile_url}"><img src="${c.avatar}" style="width:30px;height:30px;"></a>
+                                <div>
+                                    <a href="${c.profile_url}" style="text-decoration:none; color:inherit; font-weight:600;">${c.username}</a>
+                                    <span style="margin-left:5px;">${c.text}</span>
+                                    <div style="font-size:0.7rem; color:var(--text-secondary); margin-top:2px;">${c.created_at || 'Just now'}</div>
+                                </div>
+                            </div>`).join('');
+                    } else {
+                        modalBody.innerHTML = '<div style="text-align:center; color:var(--text-secondary); margin-top:20px;" id="noCommentsMsg">No comments yet. Be the first!</div>';
+                    }   
+
+                     modalBody.scrollTop = modalBody.scrollHeight;
+                });
+
+                // Handle Modal Form Submit
+                const modalForm = document.getElementById('modalCommentForm');
+                modalForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const inputVal = document.getElementById('modalCommentInput').value;
+                    
+                    if(!inputVal.trim()) return;
+
+                    const formData = new FormData();
+                    formData.append('comment_text', inputVal);
+
+                    fetch(`/posts/comment/${postId}/`, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            document.getElementById('modalCommentInput').value = '';
+                            
+                            // Remove "No comments" msg if exists
+                            const noMsg = document.getElementById('noCommentsMsg');
+                            if(noMsg) noMsg.remove();
+
+                            // Append new comment to modal body
+                            const newCommentHtml = `
+                                <div class="user-row" style="align-items:start; animation: slideIn 0.3s ease;">
+                                    <a href="${data.profile_url}"><img src="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}https://ui-avatars.com/api/?name={{ user.username }}{% endif %}" style="width:30px;height:30px;"></a>
+                                    <div>
+                                        <a href="${data.profile_url}" style="text-decoration:none; color:inherit; font-weight:600;">${data.username}</a>
+                                        <span style="margin-left:5px;">${data.text}</span>
+                                        <div style="font-size:0.7rem; color:var(--text-secondary); margin-top:2px;">Just now</div>
+                                    </div>
+                                </div>`;
+                            
+                            modalBody.insertAdjacentHTML('beforeend', newCommentHtml);
+                            modalBody.scrollTop = modalBody.scrollHeight;
+
+                            // Update Feed Count in background
+                            const countSpan = document.querySelector(`.comment-count-${postId}`);
+                            if(countSpan) {
+                                const currentCount = parseInt(countSpan.innerText) || 0;
+                                countSpan.innerText = currentCount + 1;
+                            }
+                        }
+                    });
                 });
             });
         });
