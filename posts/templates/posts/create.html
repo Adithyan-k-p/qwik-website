@@ -62,6 +62,7 @@
         border: none;
         background: #000;
         height: auto; /* Allow height to adjust to image */
+        min-height: auto;
     }
 
     .media-preview-box img {
@@ -155,6 +156,21 @@
     <div class="create-container">
         <h2 class="page-title">Create New Qwip</h2>
 
+        <!-- Display Backend Errors if any -->
+        {% if form.errors %}
+            <div style="background: #ffebe6; color: #e0245e; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e0245e;">
+                <p style="font-weight: 600;">Please correct the following errors:</p>
+                {{ form.non_field_errors }}
+                <ul>
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
         <!-- IMPORTANT: enctype is required for file uploads -->
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
@@ -234,6 +250,8 @@
     const previewBox = document.getElementById('previewBox');
     const imagePreview = document.getElementById('imagePreview');
     const placeholderInfo = document.getElementById('placeholderInfo');
+    const form = document.getElementById('createPostForm');
+    const captionInput = document.getElementById('id_caption');
 
     fileInput.addEventListener('change', function(event) {
         const file = event.target.files[0];
@@ -259,6 +277,33 @@
             placeholderInfo.style.display = 'block';
             previewBox.classList.remove('has-image');
         }
+
+        //  Custom Frontend Validation on Submit
+        form.addEventListener('submit', function(e) {
+            const file = fileInput.files[0];
+            // Django adds id_caption automatically to the textarea
+            const caption = document.querySelector('.caption-input').value.trim();
+
+            let hasError = false;
+            let errorMessage = "";
+
+            if (!file) {
+                hasError = true;
+                errorMessage = "Please select an image to upload.";
+            } else if (!caption) {
+                hasError = true;
+                errorMessage = "Please write a caption.";
+            }
+
+            if (hasError) {
+                e.preventDefault(); // Stop submission
+                // Use your toast function if available, otherwise alert
+                if(typeof showQwikAlert === 'function') {
+                    showQwikAlert(errorMessage, 'error');
+                } else {
+                    alert(errorMessage);
+                }
+            }
     });
 </script>
 {% endblock %}

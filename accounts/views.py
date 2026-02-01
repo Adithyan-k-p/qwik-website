@@ -178,6 +178,8 @@ def follow_user_view(request, username):
 
     # --- AJAX RESPONSE ---
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        new_count = Follow.objects.filter(following=user_to_toggle).count()
+
         new_following_count = Follow.objects.filter(follower=request.user).count()
         
         # Prepare data for Dynamic List Injection
@@ -189,6 +191,7 @@ def follow_user_view(request, username):
         
         return JsonResponse({
             'status': status, 
+            'new_count': new_count, 
             'new_following_count': new_following_count,
             'username': user_to_toggle.username,
             'full_name': full_name,
