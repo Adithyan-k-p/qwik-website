@@ -34,7 +34,7 @@
     .detail-img-side { flex: 1.2; background: #000; display: flex; align-items: center; justify-content: center; }
     .detail-img-side img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .detail-info-side { flex: 0.8; display: flex; flex-direction: column; min-width: 350px; }
-    .detail-header { padding: 15px; border-bottom: 1px solid var(--bg-hover); display: flex; align-items: center; gap: 12px; }
+    .detail-header { padding: 15px; border-bottom: 1px solid var(--bg-hover); display: flex; align-items: center; gap: 12px; position: relative;overflow: visible !important; z-index: 10; }
     .detail-header img { width: 32px; height: 32px; border-radius: 50%; }
     .detail-comments-box { flex: 1; overflow-y: auto; padding: 15px; }
     .comment-row { display: flex; gap: 12px; margin-bottom: 15px; font-size: 0.9rem; }
@@ -98,6 +98,10 @@
             <div class="detail-header">
                 <a id="m-user-link" href=""><img id="m-avatar" src=""></a>
                 <a id="m-user-name-link" href="" style="text-decoration:none; color:inherit;"><b id="m-username"></b></a>
+
+                <div id="m-menu-container" class="post-menu-container">
+                    <!-- JS will put the button and dropdown here -->
+                </div>
             </div>
             <div class="detail-comments-box" id="m-comments-list"></div>
             <div class="detail-footer">
@@ -121,6 +125,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let loadedIds = Array.from(document.querySelectorAll('.grid-item')).map(el => el.dataset.postId);
     let currentIndex = -1;
     let currentPk = null;
+
+    const currentUser = "{{ request.user.username }}"; 
 
     const modal = document.getElementById('detailModal');
     const commentsList = document.getElementById('m-comments-list');
@@ -178,6 +184,34 @@ document.addEventListener('DOMContentLoaded', function() {
             commentsList.innerHTML = html;
             modal.style.display = 'flex';
             updateArrows();
+
+            const menuContainer = document.getElementById('m-menu-container');
+            const uniqueMenuId = `explore-modal-${data.pk}`; // Unique ID
+
+            let menuHtml = `
+                <button class="post-menu-btn" onclick="togglePostMenu(event, '${uniqueMenuId}')">
+                    <i class="fa-solid fa-ellipsis"></i>
+                </button>
+                <div class="post-dropdown" id="menu-${uniqueMenuId}">
+            `;
+
+            if (data.username === currentUser) {
+                // Owner: Delete
+                menuHtml += `
+                    <div class="post-dropdown-item text-danger" onclick="deletePost('${data.pk}')">
+                        <i class="fa-regular fa-trash-can"></i> Delete Post
+                    </div>`;
+            } else {
+                // Visitor: Report
+                menuHtml += `
+                    <div class="post-dropdown-item text-danger" onclick="openReportModal('post', '${data.pk}')">
+                        <i class="fa-regular fa-flag"></i> Report Post
+                    </div>`;
+            }
+            
+            menuHtml += `</div>`;
+            menuContainer.innerHTML = menuHtml;
+
         });
     }
 

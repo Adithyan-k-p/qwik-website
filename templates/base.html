@@ -232,6 +232,115 @@
         @keyframes fadeOut {
             to { opacity: 0; transform: translateY(10px); }
         }
+
+
+        /* GLOBAL REPORT MODAL */
+
+        .report-card {
+            background-color: var(--bg-card); /* This fixes the transparency issue */
+            width: 90%;
+            max-width: 450px; /* Slightly narrower for a cleaner look */
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Ensures corners remain rounded */
+            animation: modalPop 0.2s ease-out;
+        }
+
+        @keyframes modalPop { 
+            from { transform: scale(0.95); opacity: 0; } 
+            to { transform: scale(1); opacity: 1; } 
+        }
+
+        /* Header Styling */
+        .report-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--bg-hover);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .report-header h4 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+
+        /* Close Button */
+        .report-close {
+            cursor: pointer; font-size: 1.5rem; color: var(--text-secondary);
+            line-height: 1;
+        }
+        .report-close:hover { color: var(--text-main); }
+
+        /* Body Styling */
+        .report-body { padding: 20px; }
+
+        /* Input Styling */
+        .report-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #dadde1; /* Default border */
+            border-radius: 8px;
+            background: var(--bg-body); /* Light gray background for inputs */
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .report-input:focus { border-color: var(--accent-solid); }
+
+        /* Submit Button */
+        .report-submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #e0245e; /* Red for report actions */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95rem;
+            margin-top: 10px;
+        }
+        .report-submit-btn:hover { opacity: 0.9; }
+
+        /* Dropdown Menu Styles */
+        .post-menu-container { position: relative; display: inline-block; }
+        .post-menu-btn { 
+            background: none; border: none; cursor: pointer; 
+            color: var(--text-secondary); padding: 8px; font-size: 1.1rem;
+            border-radius: 50%; transition: background 0.2s;
+        }
+        .post-menu-btn:hover { background-color: var(--bg-hover); }
+        .post-dropdown {
+            position: absolute; right: 0; top: 100%; 
+            background: var(--bg-card); border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+            display: none; flex-direction: column; 
+            min-width: 160px; z-index: 500; overflow: hidden;
+            border: 1px solid var(--bg-hover);
+        }
+        .post-dropdown.show { display: flex; }
+        .post-dropdown-item {
+            padding: 12px 15px; font-size: 0.9rem; cursor: pointer; 
+            display: flex; align-items: center; gap: 10px; color: var(--text-main);
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .post-dropdown-item:hover { background: var(--bg-hover); }
+        .text-danger { color: #e0245e; }
+        .text-danger:hover { background: rgba(224, 36, 94, 0.1); }
+
+        .qwik-modal {
+        display: none; /* Hidden by default */
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.6);
+        align-items: center;
+        justify-content: center;
+    }
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -311,6 +420,45 @@
         <!-- Dynamic Content will be injected here -->
         {% block content %}{% endblock %}
 
+    </div>
+
+    <!-- GLOBAL REPORT MODAL -->
+   <div id="reportModal" class="qwik-modal">
+        <!-- Changed class to 'report-card' to use the CSS above -->
+        <div class="report-card">
+            
+            <div class="report-header">
+                <h4>Report Content</h4>
+                <span class="report-close" onclick="closeReportModal()">&times;</span>
+            </div>
+
+            <div class="report-body">
+                <form id="reportForm">
+                    <input type="hidden" name="target_type" id="reportTargetType">
+                    <input type="hidden" name="target_id" id="reportTargetId">
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight:600; display:block; margin-bottom:8px; font-size:0.9rem;">Reason</label>
+                        <select name="reason" class="report-input" required>
+                            <option value="" disabled selected>Select a reason</option>
+                            <option value="spam">It's spam</option>
+                            <option value="inappropriate">Inappropriate content</option>
+                            <option value="harassment">Harassment or bullying</option>
+                            <option value="scam">Scam or Fraud</option>
+                            <option value="false_info">False information</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight:600; display:block; margin-bottom:8px; font-size:0.9rem;">Description</label>
+                        <textarea name="description" class="report-input" style="height:100px; resize:none;" placeholder="Please provide more details..."></textarea>
+                    </div>
+
+                    <button type="submit" class="report-submit-btn">Submit Report</button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- JS -->
@@ -435,6 +583,121 @@
                 // you could reload or use AJAX to fetch the new thread HTML.
                 window.location.reload(); 
             }
+        }
+
+
+        // GLOBAL REPORT MODAL
+        // 1. CSRF Helper Function
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // 2. Toggle Menu Logic
+        function togglePostMenu(e, uniqueId) {
+            e.stopPropagation();
+            // Close all other open menus
+            document.querySelectorAll('.post-dropdown').forEach(el => {
+                if (el.id !== `menu-${uniqueId}`) el.classList.remove('show');
+            });
+            
+            const menu = document.getElementById(`menu-${uniqueId}`);
+            if (menu) {
+                menu.classList.toggle('show');
+                console.log("Toggled menu:", uniqueId); // Debugging
+            } else {
+                console.error("Menu not found:", uniqueId);
+            }
+        }
+
+        // Close menus when clicking outside
+        window.addEventListener('click', () => {
+            document.querySelectorAll('.post-dropdown').forEach(el => el.classList.remove('show'));
+        });
+
+        // 3. Open Report Modal Logic
+        function openReportModal(type, id) {
+            // Debugging line to check if function fires
+            console.log("Opening report for:", type, id);
+
+            const modal = document.getElementById('reportModal');
+            const typeInput = document.getElementById('reportTargetType');
+            const idInput = document.getElementById('reportTargetId');
+
+            if(modal && typeInput && idInput) {
+                typeInput.value = type;
+                idInput.value = id;
+                modal.style.display = 'flex';
+                
+                // Hide the menu immediately after clicking
+                document.querySelectorAll('.post-dropdown').forEach(el => el.classList.remove('show'));
+            } else {
+                console.error("Report Modal elements missing in base.html");
+            }
+        }
+
+        function closeReportModal() {
+            document.getElementById('reportModal').style.display = 'none';
+            document.getElementById('reportForm').reset();
+        }
+
+        // 4. Handle Form Submission
+        const reportForm = document.getElementById('reportForm');
+        if (reportForm) {
+            reportForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const csrfToken = getCookie('csrftoken');
+                
+                // Debugging: Check if token exists
+                if (!csrfToken) {
+                    alert("CSRF Token missing. Please refresh the page.");
+                    return;
+                }
+
+                // Append CSRF manually to headers
+                fetch("/reports/submit/", {  // HARDCODED URL to ensure it hits the right path
+                    method: 'POST',
+                    body: formData,
+                    headers: { 
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    closeReportModal();
+                    if(data.status === 'success') {
+                        // Use standard alert if toast function missing, otherwise use toast
+                        if (typeof showQwikAlert === "function") {
+                            showQwikAlert(data.message, "success");
+                        } else {
+                            alert(data.message);
+                        }
+                    } else {
+                        if (typeof showQwikAlert === "function") {
+                            showQwikAlert(data.message || "Error submitting report", "error");
+                        } else {
+                            alert(data.message || "Error submitting report");
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error("Report Error:", err);
+                    alert("An error occurred. Check console for details.");
+                });
+            });
         }
     </script>
 </body>

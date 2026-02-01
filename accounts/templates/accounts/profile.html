@@ -5,7 +5,7 @@
 {% block extra_css %}
 <style>
     .main-content { width: var(--feed-width); margin: 0 30px; padding-top: 30px; padding-bottom: 80px; position: relative; }
-    .profile-header { background: var(--bg-card); border-radius: var(--card-radius); padding: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 30px; display: flex; align-items: flex-start; gap: 30px; }
+    .profile-header { background: var(--bg-card); border-radius: var(--card-radius); padding: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 30px; display: flex; align-items: flex-start; gap: 30px;}
     .profile-avatar-container { flex-shrink: 0; }
     .profile-avatar { width: 150px; height: 150px; border-radius: 50%; border: 4px solid var(--bg-body); background: var(--accent-gradient); padding: 3px; }
     .profile-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #fff; }
@@ -98,7 +98,10 @@
     .detail-img-side img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .detail-info-side { flex: 0.8; display: flex; flex-direction: column; min-width: 350px; background: var(--bg-card); }
 
-    .detail-header { padding: 15px; border-bottom: 1px solid var(--bg-hover); display: flex; align-items: center; gap: 12px; }
+    .detail-header { padding: 15px; border-bottom: 1px solid var(--bg-hover); display: flex; align-items: center; gap: 12px; 
+    position: relative;
+    overflow: visible !important; /* CRITICAL: Allows menu to show */
+    z-index: 10;}
     .detail-header img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
 
     .detail-comments-box { flex: 1; overflow-y: auto; padding: 15px; }
@@ -112,6 +115,65 @@
     .nav-arrow { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 2.5rem; cursor: pointer; padding: 20px; transition: 0.2s; }
     .nav-arrow.disabled { opacity: 0; pointer-events: none; }
     .arrow-left { left: 10px; } .arrow-right { right: 10px; }
+
+
+    .detail-header .post-dropdown {
+        top: 35px; /* Push it down slightly */
+        right: 10px;
+        width: 180px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3); /* Stronger shadow for modal depth */
+    }
+
+    /* --- ACTION MODALS (Edit & Delete) --- */
+    .action-modal {
+        display: none;
+        position: fixed;
+        z-index: 21000; /* Higher than Report(20000) and Detail(5000) */
+        left: 0; top: 0; width: 100%; height: 100%;
+        background-color: rgba(0,0,0,0.6);
+        align-items: center; justify-content: center;
+        backdrop-filter: blur(2px);
+    }
+
+    .action-card {
+        background: var(--bg-card);
+        width: 90%; max-width: 400px;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        text-align: center;
+        animation: popIn 0.2s ease-out;
+    }
+
+    @keyframes popIn { from { transform: scale(0.9); opacity:0; } to { transform: scale(1); opacity:1; } }
+
+    .action-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; color: var(--text-main); }
+    .action-desc { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px; }
+
+    /* Buttons */
+    .action-btn-group { display: flex; gap: 10px; justify-content: center; }
+    .btn-cancel {
+        background: var(--bg-hover); color: var(--text-main);
+        padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600;
+    }
+    .btn-confirm-delete {
+        background: #e0245e; color: white;
+        padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600;
+    }
+    .btn-save {
+        background: var(--accent-solid); color: white;
+        padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600;
+    }
+
+    /* Edit Textarea */
+    .edit-textarea {
+        width: 100%; height: 100px;
+        padding: 10px; border-radius: 8px; border: 1px solid #dadde1;
+        background: var(--bg-body); color: var(--text-main);
+        font-family: inherit; resize: none; outline: none;
+        margin-bottom: 15px;
+    }
+    .edit-textarea:focus { border-color: var(--accent-solid); }
 </style>
 {% endblock %}
 
@@ -140,6 +202,20 @@
                            class="{% if is_following %}btn-secondary{% else %}btn-primary{% endif %}">
                             {% if is_following %}Following{% else %}Follow{% endif %}
                         </a>
+
+                        <!-- 3 Dot Menu -->
+                        <div class="post-menu-container" style="margin-left: 10px; z-index: 100;">
+                        <button class="post-menu-btn" onclick="togglePostMenu(event, 'user-{{ profile_user.id }}')">
+                            <i class="fa-solid fa-ellipsis" style="font-size: 1.3rem;"></i>
+                        </button>
+                        
+                        <!-- Dropdown -->
+                        <div class="post-dropdown" id="menu-user-{{ profile_user.id }}" style="min-width: 180px;">
+                            <div class="post-dropdown-item text-danger" onclick="openReportModal('user', '{{ profile_user.id }}')">
+                                <i class="fa-regular fa-flag"></i> Report User
+                            </div>
+                        </div>
+                    </div>
                     {% endif %}
                 </div>
 
@@ -298,7 +374,12 @@
                 <div class="detail-header">
                     <img id="m-avatar" src="">
                     <b id="m-username"></b>
+                    
+                    <div id="m-menu-container" class="post-menu-container">
+                        <!-- JS will put the button and dropdown here -->
+                    </div>
                 </div>
+
                 <div class="detail-comments-box" id="m-comments-list"></div>
                 <div class="detail-footer">
                     <div>
@@ -312,6 +393,36 @@
                         <button type="submit" style="background:none; border:none; color:var(--accent-solid); font-weight:600;">Post</button>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!--  DELETE CONFIRMATION WINDOW -->
+    <div id="deleteConfirmModal" class="action-modal">
+        <div class="action-card">
+            <div class="action-title">Delete Post?</div>
+            <p class="action-desc">Are you sure you want to delete this post? This action will move it to your archive.</p>
+            
+            <input type="hidden" id="delete-target-id">
+            
+            <div class="action-btn-group">
+                <button class="btn-cancel" onclick="closeActionModal('deleteConfirmModal')">Cancel</button>
+                <button class="btn-confirm-delete" onclick="submitDelete()">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT CAPTION WINDOW -->
+    <div id="editCaptionModal" class="action-modal">
+        <div class="action-card">
+            <div class="action-title">Edit Caption</div>
+            
+            <input type="hidden" id="edit-target-id">
+            <textarea id="caption-editor" class="edit-textarea" placeholder="Write a caption..."></textarea>
+            
+            <div class="action-btn-group">
+                <button class="btn-cancel" onclick="closeActionModal('editCaptionModal')">Cancel</button>
+                <button class="btn-save" onclick="submitEditCaption()">Save Changes</button>
             </div>
         </div>
     </div>
@@ -459,12 +570,71 @@
                     icon.className = data.is_liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
                     icon.style.color = data.is_liked ? '#e0245e' : '';
 
-                    // Load comments (Caption first)
+                    // Post Menu (3 dots)
+                    const menuContainer = document.getElementById('m-menu-container');
+                    const currentUser = "{{ request.user.username }}"; // Get Django user
+                    
+                    // Create unique ID for this modal menu to avoid conflicts
+                    const uniqueMenuId = `modal-post-${data.pk}`;
+
+                    let menuHtml = `
+                        <button class="post-menu-btn" onclick="togglePostMenu(event, '${uniqueMenuId}')">
+                            <i class="fa-solid fa-ellipsis"></i>
+                        </button>
+                        <div class="post-dropdown" id="menu-${uniqueMenuId}">
+                    `;
+
+                    // Check ownership
+                    if (data.username === currentUser) {
+                        // Edit Caption
+                         // Note: We escape the caption to prevent JS errors if it contains quotes
+                        const safeCaption = data.caption.replace(/'/g, "\\'"); 
+                        menuHtml += `
+                            <div class="post-dropdown-item" onclick="openEditModal('${data.pk}')">
+                                <i class="fa-regular fa-pen-to-square"></i> Edit Caption
+                            </div>
+                            <div class="post-dropdown-item text-danger" onclick="openDeleteModal('${data.pk}')">
+                                <i class="fa-regular fa-trash-can"></i> Delete Post
+                            </div>`;
+                    } else {
+                        // Visitor: Show Report
+                        menuHtml += `
+                            <div class="post-dropdown-item text-danger" onclick="openReportModal('post', '${data.pk}')">
+                                <i class="fa-regular fa-flag"></i> Report Post
+                            </div>`;
+                    }
+                    
+                    menuHtml += `</div>`;
+                    menuContainer.innerHTML = menuHtml;
+
+                    {% comment %} // Load comments (Caption first)
                     let html = `
                         <div class="comment-row">
                             <img src="${data.user_avatar}">
                             <div><b>${data.username}</b> ${data.caption}</div>
                         </div>`;
+                    data.comments.forEach(c => {
+                        html += `
+                            <div class="comment-row">
+                                <a href="${c.profile_url}"><img src="${c.avatar}"></a>
+                                <div>
+                                    <a href="${c.profile_url}" style="text-decoration:none; color:inherit; font-weight:600;">${c.username}</a>
+                                    ${c.text}
+                                </div>
+                            </div>`;
+                    }); {% endcomment %}
+
+                    // --- COMMENTS & CAPTION ---
+                    // We give the caption a specific ID to update it later
+                    let html = `
+                        <div class="comment-row" id="caption-row">
+                            <img src="${data.user_avatar}">
+                            <div style="width:100%;">
+                                <b>${data.username}</b> 
+                                <span id="live-caption-text">${data.caption}</span>
+                            </div>
+                        </div>`;
+                    
                     data.comments.forEach(c => {
                         html += `
                             <div class="comment-row">
@@ -555,6 +725,89 @@
             }
         }
         return cookieValue;
+    }
+
+    /* --- 2. MODAL CONTROLS --- */
+    function closeActionModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    // DELETE LOGIC
+    function openDeleteModal(postId) {
+        document.getElementById('delete-target-id').value = postId;
+        document.getElementById('deleteConfirmModal').style.display = 'flex';
+        // Close dropdown
+        document.querySelectorAll('.post-dropdown').forEach(el => el.classList.remove('show'));
+    }
+
+    function submitDelete() {
+        const postId = document.getElementById('delete-target-id').value;
+        
+        fetch(`/posts/delete/${postId}/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            closeActionModal('deleteConfirmModal');
+            
+            if (data.status === 'success') {
+                // Close the Detail View
+                document.getElementById('postDetailModal').style.display = 'none';
+                
+                // Remove from the Profile Grid immediately
+                const gridItem = document.querySelector(`.grid-item[data-post-id="${postId}"]`);
+                if (gridItem) gridItem.remove();
+                
+                showQwikAlert("Post deleted successfully", "success");
+            } else {
+                showQwikAlert(data.message || "Error deleting post", "error");
+            }
+        });
+    }
+
+    // EDIT CAPTION LOGIC
+    function openEditModal(postId) {
+        const currentCaption = document.getElementById('live-caption-text').innerText;
+        
+        document.getElementById('edit-target-id').value = postId;
+        document.getElementById('caption-editor').value = currentCaption; // Pre-fill
+        document.getElementById('editCaptionModal').style.display = 'flex';
+        
+        // Close dropdown
+        document.querySelectorAll('.post-dropdown').forEach(el => el.classList.remove('show'));
+    }
+
+    function submitEditCaption() {
+        const postId = document.getElementById('edit-target-id').value;
+        const newText = document.getElementById('caption-editor').value; // Can be empty string
+        
+        const formData = new FormData();
+        formData.append('caption', newText);
+
+        fetch(`/posts/update-caption/${postId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            closeActionModal('editCaptionModal');
+            
+            if (data.status === 'success') {
+                // Update the text in the open modal immediately
+                document.getElementById('live-caption-text').innerText = data.new_caption;
+                showQwikAlert("Caption updated successfully", "success");
+            } else {
+                showQwikAlert("Error updating caption", "error");
+            }
+        });
     }
     </script>
 {% endblock %}
