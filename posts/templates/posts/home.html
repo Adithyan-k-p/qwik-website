@@ -15,20 +15,6 @@
     }
     .post-follow-link:hover { color: #556cd6; }
 
-    /* Modal Overlay */
-    .qwik-modal {
-        display: none; /* Hidden by default */
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.6);
-        align-items: center;
-        justify-content: center;
-    }
-
     /* Modal Content Box */
     .modal-content {
         background-color: var(--bg-card);
@@ -123,8 +109,27 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Optional: Menu Icon -->
-                    <i class="fa-solid fa-ellipsis" style="color: var(--text-secondary); cursor: pointer;"></i>
+                    
+                    <!-- 3 Dots Menu Container -->
+                    <div class="post-menu-container">
+                        <button class="post-menu-btn" onclick="togglePostMenu(event, 'post-{{ post.id }}')">
+                            <i class="fa-solid fa-ellipsis"></i>
+                        </button>
+                        
+                        <div class="post-dropdown" id="menu-post-{{ post.id }}">
+                            {% if request.user == post.user %}
+                                <!-- Owner Options -->
+                                <div class="post-dropdown-item text-danger" onclick="deletePost('{{ post.id }}')">
+                                    <i class="fa-regular fa-trash-can"></i> Delete Post
+                                </div>
+                            {% else %}
+                                <!-- Report Option -->
+                                <div class="post-dropdown-item text-danger" onclick="openReportModal('post', '{{ post.id }}')">
+                                    <i class="fa-regular fa-flag"></i> Report Post
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Image -->

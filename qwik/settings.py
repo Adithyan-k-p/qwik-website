@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "chats",
     "channels",
     "custom_admin", 
+    "reports",
 ]
 
 # Custom User Model
