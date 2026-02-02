@@ -197,3 +197,58 @@ class CustomPasswordChangeForm(PasswordChangeForm):
             raise forms.ValidationError("Password must contain at least one number.")
             
         return password
+    
+class ForgotPasswordForm(forms.Form):
+    email = forms.EmailField(widget=forms.EmailInput(attrs={
+        'class': 'form-input', 'placeholder': 'Enter your registered email'
+    }))
+
+class OTPVerifyForm(forms.Form):
+    otp = forms.CharField(max_length=6, widget=forms.TextInput(attrs={
+        'class': 'form-input', 
+        'placeholder': '6-digit code', 
+        'style': 'text-align:center; letter-spacing: 5px; font-size: 1.5rem;'
+    }))
+
+class ResetPasswordForm(forms.Form):
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-input', 'id': 'newPass', 'placeholder': 'New password'})
+    )
+    confirm_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-input', 'id': 'confirmPass', 'placeholder': 'Confirm new password'})
+    )
+
+    def clean_password(self):
+        # We assign to a local variable and check if it exists to satisfy type checkers
+        password = self.cleaned_data.get('password')
+        
+        if not password:
+            raise ValidationError("Password is required.")
+
+        # 1. Length check (8-32)
+        if len(password) < 8 or len(password) > 32:
+            raise ValidationError("Password must be 8-32 characters long.")
+        
+        # 2. Uppercase check
+        if not re.search(r'[A-Z]', password):
+            raise ValidationError("Must contain at least one uppercase letter.")
+            
+        # 3. Lowercase check
+        if not re.search(r'[a-z]', password):
+            raise ValidationError("Must contain at least one lowercase letter.")
+            
+        # 4. Digit check
+        if not re.search(r'\d', password):
+            raise ValidationError("Must contain at least one digit.")
+            
+        return password
+
+    def clean(self):
+        cleaned_data = super().clean() # Returns a dict
+        p1 = cleaned_data.get('password')
+        p2 = cleaned_data.get('confirm_password')
+
+        if p1 and p2 and p1 != p2:
+            self.add_error('confirm_password', "Passwords do not match.")
+        
+        return cleaned_data # CRITICAL: Must return the dictionary
