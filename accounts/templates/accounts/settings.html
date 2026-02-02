@@ -191,6 +191,9 @@
         <div class="s-nav-item" onclick="switchTab('activity-comments', this)">
             <i class="fa-solid fa-comment"></i> My Comments
         </div>
+        <div class="s-nav-item" onclick="switchTab('activity-saved', this)">
+            <i class="fa-solid fa-bookmark"></i> Saved Posts
+        </div>
         
         <a href="{% url 'accounts:logout' %}" class="s-nav-item" style="color: #e0245e;">
             <i class="fa-solid fa-sign-out-alt"></i> Logout
@@ -299,34 +302,55 @@
         <!-- TAB: MY POSTS (Active) -->
         <div id="activity-posts" class="tab-pane">
             <h2>Manage Your Posts</h2>
-            <div class="activity-list">
-                {% for post in my_posts %}
-                <div class="activity-item" id="post-item-{{ post.id }}">
-                    {% if post.image %}
-                        <img src="{{ post.image.url }}" class="act-thumb">
-                    {% else %}
-                        <div class="act-thumb" style="background:#eee;"></div>
-                    {% endif %}
-                    <div class="act-info">
-                        <p id="caption-{{ post.id }}">{{ post.caption }}</p>
-                        <span class="act-meta">{{ post.likes.count }} Likes &bull; {{ post.comments.count }} Comments &bull; {{ post.created_at|date:"M d, Y" }}</span>
-                        <!-- Edit Form -->
-                        <div id="edit-box-{{ post.id }}" style="display:none; margin-top:5px;">
-                            <input type="text" id="input-caption-{{ post.id }}" value="{{ post.caption }}" class="form-control" style="padding:5px;">
-                            <div style="margin-top:5px;">
-                                <button onclick="saveCaption({{ post.id }})" class="btn-act" style="background:var(--accent-solid); color:white;">Save</button>
-                                <button onclick="toggleEdit({{ post.id }})" class="btn-act">Cancel</button>
+
+            <div class="activity-list" id="my-posts-list">    
+                <div class="activity-list" id="my-posts-list">
+                    
+                    {% for post in my_posts %}
+                    <div class="activity-item" id="post-item-{{ post.id }}">
+                        <!-- 1. Post Thumbnail -->
+                        {% if post.image %}
+                            <img src="{{ post.image.url }}" class="act-thumb">
+                        {% else %}
+                            <div class="act-thumb" style="background:#eee;"></div>
+                        {% endif %}
+
+                        <!-- 2. Post Information -->
+                        <div class="act-info">
+                            <!-- Display Caption -->
+                            <p id="caption-{{ post.id }}">{{ post.caption }}</p>
+                            
+                            <!-- Metadata -->
+                            <span class="act-meta">
+                                {{ post.likes.count }} Likes &bull; 
+                                {{ post.comments.count }} Comments &bull; 
+                                {{ post.created_at|date:"M d, Y" }}
+                            </span>
+
+                            <!-- 3. Hidden Edit Form (Used when clicking Edit button) -->
+                            <div id="edit-box-{{ post.id }}" style="display:none; margin-top:5px;">
+                                <input type="text" id="input-caption-{{ post.id }}" value="{{ post.caption }}" class="form-control" style="padding:5px;">
+                                <div style="margin-top:5px;">
+                                    <button onclick="saveCaption({{ post.id }})" class="btn-act" style="background:var(--accent-solid); color:white;">Save</button>
+                                    <button onclick="toggleEdit({{ post.id }})" class="btn-act">Cancel</button>
+                                </div>
                             </div>
                         </div>
+
+                        <!-- 4. Action Buttons -->
+                        <div style="display:flex; flex-direction:column; gap:5px;">
+                            <button class="btn-act btn-edit" onclick="toggleEdit({{ post.id }})">Edit</button>
+                            <button class="btn-act btn-danger" onclick="deletePost({{ post.id }})">Delete</button>
+                        </div>
                     </div>
-                    <div style="display:flex; flex-direction:column; gap:5px;">
-                        <button class="btn-act btn-edit" onclick="toggleEdit({{ post.id }})">Edit</button>
-                        <button class="btn-act btn-danger" onclick="deletePost({{ post.id }})">Delete</button>
-                    </div>
+                    {% endfor %}
+
+                    <!-- Empty State Message -->
+                    <p id="my-posts-empty" style="color:var(--text-secondary); {% if my_posts %}display:none;{% endif %}">
+                        You haven't posted anything yet.
+                    </p>
+
                 </div>
-                {% empty %}
-                    <p style="color:var(--text-secondary)">You haven't posted anything yet.</p>
-                {% endfor %}
             </div>
         </div>
 
@@ -334,25 +358,14 @@
         <div id="activity-archived" class="tab-pane">
             <h2>Recycle Bin</h2>
             <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:15px;">Posts you deleted are stored here. You can restore them.</p>
+            
             <div class="activity-list" id="archived-list">
                 {% for post in archived_posts %}
-                <div class="activity-item" id="archived-item-{{ post.id }}">
-                    {% if post.image %}
-                        <img src="{{ post.image.url }}" class="act-thumb" style="opacity:0.6;">
-                    {% else %}
-                        <div class="act-thumb" style="background:#eee;"></div>
-                    {% endif %}
-                    <div class="act-info">
-                        <p style="text-decoration:line-through; color:var(--text-secondary);">{{ post.caption }}</p>
-                        <span class="act-meta">Deleted by you</span>
-                    </div>
-                    <button class="btn-act btn-restore" onclick="restorePost({{ post.id }})">
-                        <i class="fa-solid fa-rotate-left"></i> Restore
-                    </button>
-                </div>
-                {% empty %}
-                    <p style="color:var(--text-secondary)">Trash is empty.</p>
+                    <!-- Your existing activity-item code -->
                 {% endfor %}
+                <p id="archived-empty" style="color:var(--text-secondary); {% if archived_posts %}display:none;{% endif %}">
+                    Trash is empty.
+                </p>
             </div>
             
             {% if admin_deleted_posts %}
@@ -427,6 +440,32 @@
             </div>
         </div>
 
+
+        <!-- TAB: SAVED POSTS -->
+        <div id="activity-saved" class="tab-pane">
+            <h2>Saved Posts</h2>
+            <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:15px;">Posts you've bookmarked for later.</p>
+            <div class="activity-list">
+                {% for saved in my_saved_posts %}
+                <div class="activity-item" id="saved-item-{{ saved.post.id }}">
+                    <a href="{% url 'posts:home' %}">
+                        {% if saved.post.image %}
+                            <img src="{{ saved.post.image.url }}" class="act-thumb">
+                        {% else %}
+                            <div class="act-thumb" style="background:#eee;"></div>
+                        {% endif %}
+                    </a>
+                    <div class="act-info">
+                        <p>Saved <b>{{ saved.post.user.username }}</b>'s post</p>
+                        <span class="act-meta">Saved on {{ saved.created_at|date:"M d, Y" }}</span>
+                    </div>
+                    <button class="btn-act btn-danger" onclick="unsavePost({{ saved.post.id }})">Unsave</button>
+                </div>
+                {% empty %}
+                    <p style="color:var(--text-secondary)">No saved posts found.</p>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 </div>
 
@@ -618,34 +657,105 @@
         });
     }
 
-    // 3. Delete Post (Archive)
+    // 3. Delete Post (Move to Recycle Bin)
     function deletePost(postId) {
-        qwikConfirm("Move to Recycle Bin?", "This post will be hidden from your profile. You can restore it later from the Recycle Bin.", () => {
+        qwikConfirm("Move to Recycle Bin?", "This post will be hidden from your profile. You can restore it later.", () => {
             fetch(`/posts/delete/${postId}/`, {
                 method: 'POST',
-                headers: {'X-CSRFToken': getCookie('csrftoken')}
+                headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}
             }).then(res => res.json()).then(data => {
                 if(data.status === 'success') {
-                    document.getElementById(`post-item-${postId}`).remove();
+                    const originalItem = document.getElementById(`post-item-${postId}`);
+                    const thumbSrc = originalItem.querySelector('.act-thumb').src;
+                    const caption = document.getElementById(`caption-${postId}`).innerText;
+
+                    // 1. Remove from My Posts
+                    originalItem.remove();
+                    checkEmptyState('my-posts-list', 'my-posts-empty');
+
+                    // 2. Create HTML for Recycle Bin
+                    const archivedList = document.getElementById('archived-list');
+                    const newItemHtml = `
+                        <div class="activity-item" id="archived-item-${postId}" style="animation: fadeIn 0.3s;">
+                            <img src="${thumbSrc}" class="act-thumb" style="opacity:0.6;">
+                            <div class="act-info">
+                                <p style="text-decoration:line-through; color:var(--text-secondary);">${caption}</p>
+                                <span class="act-meta">Deleted by you</span>
+                            </div>
+                            <button class="btn-act btn-restore" onclick="restorePost(${postId})">
+                                <i class="fa-solid fa-rotate-left"></i> Restore
+                            </button>
+                        </div>
+                    `;
+                    
+                    document.getElementById('archived-empty').style.display = 'none';
+                    archivedList.insertAdjacentHTML('afterbegin', newItemHtml);
                     showQwikAlert("Post moved to Recycle Bin");
                 }
             });
         });
     }
 
-    // 4. Restore Post
+    // 4. Restore Post (Move back to My Posts)
     function restorePost(postId) {
         qwikConfirm("Restore Post?", "This post will be visible on your profile again.", () => {
             fetch(`/posts/restore/${postId}/`, {
                 method: 'POST',
-                headers: {'X-CSRFToken': getCookie('csrftoken')}
+                headers: {'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest'}
             }).then(res => res.json()).then(data => {
                 if(data.status === 'success') {
-                    document.getElementById(`archived-item-${postId}`).remove();
+                    const originalItem = document.getElementById(`archived-item-${postId}`);
+                    const thumbSrc = originalItem.querySelector('.act-thumb').src;
+                    const caption = originalItem.querySelector('p').innerText;
+
+                    // 1. Remove from Recycle Bin
+                    originalItem.remove();
+                    checkEmptyState('archived-list', 'archived-empty');
+
+                    // 2. Create HTML for My Posts
+                    const myPostsList = document.getElementById('my-posts-list');
+                    const dateNow = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    
+                    const newItemHtml = `
+                        <div class="activity-item" id="post-item-${postId}" style="animation: fadeIn 0.3s;">
+                            <img src="${thumbSrc}" class="act-thumb">
+                            <div class="act-info">
+                                <p id="caption-${postId}">${caption}</p>
+                                <span class="act-meta">0 Likes &bull; 0 Comments &bull; ${dateNow}</span>
+                                <div id="edit-box-${postId}" style="display:none; margin-top:5px;">
+                                    <input type="text" id="input-caption-${postId}" value="${caption}" class="form-control" style="padding:5px;">
+                                    <div style="margin-top:5px;">
+                                        <button onclick="saveCaption(${postId})" class="btn-act" style="background:var(--accent-solid); color:white;">Save</button>
+                                        <button onclick="toggleEdit(${postId})" class="btn-act">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:5px;">
+                                <button class="btn-act btn-edit" onclick="toggleEdit(${postId})">Edit</button>
+                                <button class="btn-act btn-danger" onclick="deletePost(${postId})">Delete</button>
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById('my-posts-empty').style.display = 'none';
+                    myPostsList.insertAdjacentHTML('afterbegin', newItemHtml);
                     showQwikAlert("Post restored successfully");
                 }
             });
         });
+    }
+
+    // Helper to handle "No posts found" message visibility
+    function checkEmptyState(listId, emptyId) {
+        const list = document.getElementById(listId);
+        const emptyMsg = document.getElementById(emptyId);
+        // Count items (excluding the empty message itself)
+        const items = list.getElementsByClassName('activity-item');
+        if (items.length === 0) {
+            emptyMsg.style.display = 'block';
+        } else {
+            emptyMsg.style.display = 'none';
+        }
     }
 
     // 5. Edit Caption
@@ -674,6 +784,36 @@
                 document.getElementById(`caption-${postId}`).innerText = data.new_caption;
                 toggleEdit(postId);
             }
+        });
+    }
+
+    // 6. Unsave Post
+    function unsavePost(postId) {
+        // Reuse your custom confirmation modal
+        qwikConfirm("Unsave Post?", "Are you sure you want to remove this post from your saved collection?", () => {
+            fetch(`/posts/save/${postId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                // If it was successfully unsaved, the view returns is_saved: false
+                if (data.status === 'success' && data.is_saved === false) {
+                    const row = document.getElementById(`saved-item-${postId}`);
+                    if (row) {
+                        row.style.animation = "fadeOut 0.3s ease-out forwards";
+                        setTimeout(() => row.remove(), 300);
+                    }
+                    showQwikAlert("Post removed from saved");
+                }
+            })
+            .catch(err => {
+                console.error("Error unsaving post:", err);
+                showQwikAlert("An error occurred", "error");
+            });
         });
     }
 </script>

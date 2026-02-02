@@ -17,4 +17,5 @@ urlpatterns = [
     path('restore/<int:post_id>/', views.restore_post_view, name='restore_post'),
     path('update-caption/<int:post_id>/', views.update_post_caption, name='update_caption'),
     path('delete-comment/<int:comment_id>/', views.delete_comment_view, name='delete_comment'),
+    path('save/<int:post_id>/', views.save_post_view, name='save_post'),
 ]

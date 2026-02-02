@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.db.models import Q, Count
 from .forms import SignUpForm, LoginForm, EditProfileForm, CustomPasswordChangeForm
 from .models import User, Follow
-from posts.models import Post, Like, Comment
+from posts.models import Post, Like, Comment, SavedPost
 from django.views.decorators.cache import never_cache
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
@@ -254,6 +254,7 @@ def search_users_ajax(request):
 @login_required
 def settings_view(request):
     user = request.user
+
     
     # Initialize the form (GET request)
     password_form = CustomPasswordChangeForm(user)
@@ -318,6 +319,11 @@ def settings_view(request):
                                  .select_related('post', 'post__user')\
                                  .order_by('-created_at')
 
+    # 5. Saved Posts
+    my_saved_posts = SavedPost.objects.filter(user=user)\
+                              .select_related('post', 'post__user')\
+                              .order_by('-created_at')
+    
     context = {
         'password_form': password_form,
         'my_posts': my_posts,
@@ -325,6 +331,7 @@ def settings_view(request):
         'admin_deleted_posts': admin_deleted_posts,
         'my_likes': my_likes,
         'my_comments': my_comments,
+        'my_saved_posts': my_saved_posts,
         'active_tab': request.GET.get('tab', 'general') 
     }
     return render(request, 'accounts/settings.html', context)
