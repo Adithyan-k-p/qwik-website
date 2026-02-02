@@ -10,7 +10,13 @@ from django.views.decorators.cache import never_cache
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.contrib import messages
+from django.conf import settings
 import os
+
+from django.core.mail import send_mail
+from .forms import ForgotPasswordForm, OTPVerifyForm, ResetPasswordForm
+from .models import PasswordResetOTP, User
+import random
 
 def check_username(request):
     username = request.GET.get('username', '').strip().lower()
@@ -335,3 +341,83 @@ def settings_view(request):
         'active_tab': request.GET.get('tab', 'general') 
     }
     return render(request, 'accounts/settings.html', context)
+
+
+def forgot_password_view(request):
+    if request.method == 'POST':
+        form = ForgotPasswordForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            user = User.objects.filter(email__iexact=email).first()
+            if user:
+                # Generate 6-digit OTP
+                otp = f"{random.randint(100000, 999999)}"
+                PasswordResetOTP.objects.create(user=user, otp_code=otp)
+                
+                # Send Email
+                send_mail(
+                    subject='Your Qwik Password Reset Code',
+                    message=f'Hello,\n\nYour 6-digit OTP for password reset is: {otp}.\n\nThis code expires in 10 minutes.',
+                    from_email=settings.DEFAULT_FROM_EMAIL, # Pulled from .env
+                    recipient_list=[email],
+                    fail_silently=False,
+                )
+                request.session['reset_email'] = email # Save email in session
+                return redirect('accounts:verify_otp')
+            else:
+                form.add_error('email', "No account found with this email.")
+    else:
+        form = ForgotPasswordForm()
+    return render(request, 'accounts/forgot_password.html', {'form': form})
+
+def verify_otp_view(request):
+    email = request.session.get('reset_email')
+    if not email: return redirect('accounts:forgot_password')
+    
+    if request.method == 'POST':
+        form = OTPVerifyForm(request.POST)
+        if form.is_valid():
+            otp_input = form.cleaned_data['otp']
+            user = User.objects.get(email=email)
+            otp_record = PasswordResetOTP.objects.filter(user=user, otp_code=otp_input).last()
+            
+            if otp_record and otp_record.is_valid():
+                request.session['otp_verified'] = True
+                return redirect('accounts:reset_password')
+            else:
+                form.add_error('otp', "Invalid or expired OTP.")
+    else:
+        form = OTPVerifyForm()
+    return render(request, 'accounts/verify_otp.html', {'form': form})
+
+def reset_password_view(request):
+    # SECURITY: If the user hasn't verified OTP in this session, kick them out
+    if not request.session.get('otp_verified'):
+        messages.error(request, "Please verify your OTP first.")
+        return redirect('accounts:forgot_password')
+    
+    email = request.session.get('reset_email')
+    
+    if request.method == 'POST':
+        form = ResetPasswordForm(request.POST)
+        if form.is_valid():
+            try:
+                user = User.objects.get(email=email)
+                # set_password hashes the password automatically
+                user.set_password(form.cleaned_data['password'])
+                user.save()
+
+                # CLEANUP: Delete the used session data and the OTP records
+                del request.session['reset_email']
+                del request.session['otp_verified']
+                PasswordResetOTP.objects.filter(user=user).delete()
+
+                messages.success(request, "Password reset successfully! You can now login.")
+                return redirect('accounts:login')
+            except User.DoesNotExist:
+                messages.error(request, "User not found.")
+                return redirect('accounts:forgot_password')
+    else:
+        form = ResetPasswordForm()
+
+    return render(request, 'accounts/reset_password.html', {'form': form, 'email': email})

@@ -20,4 +20,8 @@ urlpatterns = [
     path('search-users/', views.search_users_ajax, name='search_users_ajax'),
 
     path('settings/', views.settings_view, name='settings'),
+
+    path('forgot-password/', views.forgot_password_view, name='forgot_password'),
+    path('verify-otp/', views.verify_otp_view, name='verify_otp'),
+    path('reset-password/', views.reset_password_view, name='reset_password'),
 ]
