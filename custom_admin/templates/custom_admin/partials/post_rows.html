@@ -20,17 +20,29 @@
         {% if post.is_archived %}
             <span class="status-badge badge-gray">Deleted</span>
         {% endif %}
+        {% if post.report_count > 0 %}
+            <span class="status-badge badge-orange">
+                <i class="fa-solid fa-flag"></i> {{ post.report_count }}
+            </span>
+        {% endif %}
     </td>
     <td>
-        <div style="display:flex; gap:5px;">
+        <div style="display:flex; gap:5px; flex-wrap: wrap;">
             <!-- View Button -->
             <button onclick="openPostModal('{{ post.id }}')" class="status-badge badge-gray" style="border:none; cursor:pointer;">
                 <i class="fa-regular fa-eye"></i>
             </button>
             
+            <!-- View Reports (if any) -->
+            {% if post.report_count > 0 %}
+            <a href="{% url 'custom_admin:reports_list' %}?type=post&q={{ post.id }}" class="status-badge badge-red" style="text-decoration:none;">
+                <i class="fa-solid fa-flag"></i>
+            </a>
+            {% endif %}
+            
             <!-- Flag NSFW -->
             <a href="{% url 'custom_admin:flag_post' post.id %}" class="status-badge badge-red" style="text-decoration:none;">
-                <i class="fa-solid fa-flag"></i>
+                <i class="fa-solid fa-exclamation-triangle"></i>
             </a>
 
             <!-- Delete/Restore -->

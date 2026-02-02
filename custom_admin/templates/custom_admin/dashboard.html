@@ -134,6 +134,28 @@
             <h3>{{ total_comments }}</h3>
         </div>
     </a>
+
+    <!-- PENDING REPORTS CARD - CLICKABLE -->
+    <a href="{% url 'custom_admin:reports_list' %}?status=pending" class="stat-card" title="Go to Pending Reports">
+        <div class="icon-box grad-orange">
+            <i class="fa-solid fa-exclamation-circle"></i>
+        </div>
+        <div class="stat-info">
+            <p>Pending Reports</p>
+            <h3>{{ pending_reports }}</h3>
+        </div>
+    </a>
+
+    <!-- RESOLVED REPORTS CARD - CLICKABLE -->
+    <a href="{% url 'custom_admin:reports_list' %}?status=resolved" class="stat-card" title="Go to Resolved Reports">
+        <div class="icon-box" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+            <i class="fa-solid fa-check-circle"></i>
+        </div>
+        <div class="stat-info">
+            <p>Resolved Reports</p>
+            <h3>{{ resolved_reports }}</h3>
+        </div>
+    </a>
 </div>
 
 <!-- RECENT ACTIVITY TABLE -->

@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.contrib import messages
 from django.template.loader import render_to_string
 from django.http import HttpResponse
@@ -7,6 +7,7 @@ from django.utils import timezone
 from .decorators import admin_required
 from accounts.models import User
 from posts.models import Post, Comment
+from reports.models import UserReport, PostReport
 from django.views.decorators.cache import never_cache
 
 # --- Helper for AJAX ---
@@ -21,6 +22,10 @@ def dashboard_view(request):
     banned_users = User.objects.filter(is_active=False).count()
     total_comments = Comment.objects.count()
     
+    # New: Report Statistics
+    pending_reports = UserReport.objects.filter(status='pending').count() + PostReport.objects.filter(status='pending').count()
+    resolved_reports = UserReport.objects.filter(status='resolved').count() + PostReport.objects.filter(status='resolved').count()
+    
     new_users = User.objects.order_by('-created_at')[:5]
 
     context = {
@@ -29,6 +34,8 @@ def dashboard_view(request):
         'flagged_posts': flagged_posts,
         'banned_users': banned_users,
         'total_comments': total_comments,
+        'pending_reports': pending_reports,
+        'resolved_reports': resolved_reports,
         'new_users': new_users
     }
     return render(request, 'custom_admin/dashboard.html', context)
@@ -39,7 +46,10 @@ def users_list(request):
     query = request.GET.get('q', '')
     filter_type = request.GET.get('filter', 'all')
     
-    users = User.objects.all().order_by('-created_at')
+    # Annotate with report count
+    users = User.objects.annotate(
+        report_count=Count('reports_received')
+    ).order_by('-created_at')
 
     # Filtering
     if filter_type == 'banned':
@@ -48,6 +58,8 @@ def users_list(request):
         users = users.filter(is_active=True)
     elif filter_type == 'admin':
         users = users.filter(role='admin')
+    elif filter_type == 'reported':
+        users = users.filter(report_count__gt=0)
 
     # Search
     if query:
@@ -92,7 +104,10 @@ def posts_list(request):
     query = request.GET.get('q', '')
     filter_type = request.GET.get('filter', 'live')
     
-    posts = Post.objects.select_related('user').order_by('-created_at')
+    # Annotate with report count
+    posts = Post.objects.select_related('user').annotate(
+        report_count=Count('reports')
+    ).order_by('-created_at')
 
     # Filtering
     if filter_type == 'live':
@@ -101,6 +116,8 @@ def posts_list(request):
         posts = posts.filter(is_archived=True) # Soft Deleted
     elif filter_type == 'flagged':
         posts = posts.filter(is_flagged=True) # NSFW
+    elif filter_type == 'reported':
+        posts = posts.filter(report_count__gt=0)
 
     if query:
         posts = posts.filter(
@@ -212,3 +229,147 @@ def change_password(request):
         return redirect('custom_admin:dashboard')
     
     return render(request, 'custom_admin/change_password.html')
+
+
+# ============= REPORTS MANAGEMENT =============
+
+@never_cache
+@admin_required
+def reports_list(request):
+    """View all reports (User & Post) with filters and actions"""
+    report_type = request.GET.get('type', 'all')  # all, user, post
+    status_filter = request.GET.get('status', 'all')  # all, pending, reviewed, resolved, dismissed
+    reason_filter = request.GET.get('reason', 'all')
+    query = request.GET.get('q', '')
+    
+    # Get ALL reports first (for total count)
+    all_user_reports = UserReport.objects.select_related('reporter', 'reported_user').all()
+    all_post_reports = PostReport.objects.select_related('reporter', 'post', 'post__user').all()
+    
+    # Combine both report types for counting
+    all_total_reports = list(all_user_reports) + list(all_post_reports)
+    
+    # Now apply filters for display
+    user_reports = UserReport.objects.select_related('reporter', 'reported_user').all()
+    post_reports = PostReport.objects.select_related('reporter', 'post', 'post__user').all()
+    
+    # Filter by type
+    if report_type == 'user':
+        post_reports = PostReport.objects.none()
+    elif report_type == 'post':
+        user_reports = UserReport.objects.none()
+    
+    # Filter by status
+    if status_filter != 'all':
+        user_reports = user_reports.filter(status=status_filter)
+        post_reports = post_reports.filter(status=status_filter)
+    
+    # Filter by reason
+    if reason_filter != 'all':
+        user_reports = user_reports.filter(reason=reason_filter)
+        post_reports = post_reports.filter(reason=reason_filter)
+    
+    # Search in description
+    if query:
+        user_reports = user_reports.filter(
+            Q(description__icontains=query) | 
+            Q(reported_user__username__icontains=query)
+        )
+        post_reports = post_reports.filter(
+            Q(description__icontains=query) | 
+            Q(post__caption__icontains=query)
+        )
+    
+    # Combine and order
+    all_reports = list(user_reports) + list(post_reports)
+    all_reports.sort(key=lambda x: x.created_at, reverse=True)
+    
+    # Calculate stats for ALL reports (not filtered)
+    total_all_reports = len(all_total_reports)
+    pending_all = sum(1 for r in all_total_reports if r.status == 'pending')
+    reviewed_all = sum(1 for r in all_total_reports if r.status == 'reviewed')
+    
+    # Calculate stats for FILTERED reports
+    total_filtered = len(all_reports)
+    pending_filtered = sum(1 for r in all_reports if r.status == 'pending')
+    reviewed_filtered = sum(1 for r in all_reports if r.status == 'reviewed')
+    
+    if is_ajax(request):
+        html = render_to_string('custom_admin/partials/report_rows.html', {'reports': all_reports}, request=request)
+        return HttpResponse(html)
+    
+    context = {
+        'user_reports': user_reports,
+        'post_reports': post_reports,
+        'all_reports': all_reports,
+        'total_reports': total_all_reports,  # Always show total of ALL reports
+        'pending_count': pending_all,  # Always show total pending of ALL reports
+        'reviewed_count': reviewed_all,  # Always show total reviewed of ALL reports
+        'report_type': report_type,
+        'status_filter': status_filter,
+    }
+    return render(request, 'custom_admin/reports.html', context)
+
+
+@never_cache
+@admin_required
+def update_report_status(request, report_id, report_type):
+    """Update report status (pending, reviewed, resolved, dismissed)"""
+    new_status = request.POST.get('status')
+    
+    if report_type == 'user':
+        report = get_object_or_404(UserReport, pk=report_id)
+    else:
+        report = get_object_or_404(PostReport, pk=report_id)
+    
+    if new_status in ['pending', 'reviewed', 'resolved', 'dismissed']:
+        report.status = new_status
+        report.save()
+        messages.success(request, f"Report marked as {new_status.title()}.")
+    
+    return redirect('custom_admin:reports_list')
+
+
+@never_cache
+@admin_required
+def view_user_report(request, report_id):
+    """View detailed user report"""
+    report = get_object_or_404(UserReport, pk=report_id)
+    context = {
+        'report': report,
+        'report_type': 'user',
+    }
+    return render(request, 'custom_admin/report_detail.html', context)
+
+
+@never_cache
+@admin_required
+def view_post_report(request, report_id):
+    """View detailed post report"""
+    report = get_object_or_404(PostReport, pk=report_id)
+    context = {
+        'report': report,
+        'report_type': 'post',
+    }
+    return render(request, 'custom_admin/report_detail.html', context)
+
+
+@never_cache
+@admin_required
+@admin_required
+@never_cache
+def post_detail_admin(request, post_id):
+    """Admin endpoint to view post details (simplified - image, caption, username only)"""
+    from django.http import JsonResponse
+    
+    try:
+        post = Post.objects.get(pk=post_id)
+        return JsonResponse({
+            'username': post.user.username,
+            'image_url': post.image.url if post.image else '',
+            'caption': post.caption or '(No caption)',
+        })
+    except Post.DoesNotExist:
+        return JsonResponse({'error': 'Post not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

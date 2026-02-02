@@ -240,6 +240,9 @@
             <a href="{% url 'custom_admin:comments_list' %}" class="nav-item {% if request.resolver_match.url_name == 'comments_list' %}active{% endif %}">
                 <i class="fa-solid fa-message"></i> Comments
             </a>
+            <a href="{% url 'custom_admin:reports_list' %}" class="nav-item {% if request.resolver_match.url_name == 'reports_list' %}active{% endif %}">
+                <i class="fa-solid fa-flag"></i> Reports
+            </a>
         </div>
 
         <div class="sidebar-footer">
@@ -303,23 +306,36 @@
             const modal = document.getElementById('postModal');
             const content = document.getElementById('modalContent');
             modal.style.display = 'flex';
+            content.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</div>';
             
-            // Re-use your existing public API or create a specific admin one
-            fetch(`/posts/post-detail/${postId}/`) 
-            .then(res => res.json())
+            // Fetch simplified post details (using portal/ prefix)
+            fetch(`/portal/posts/detail/${postId}/`, {
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            }) 
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
+                return res.json();
+            })
             .then(data => {
-                let imgHtml = data.image_url ? `<img src="${data.image_url}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : '';
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                let imgHtml = data.image_url ? `<img src="${data.image_url}" style="width:100%; border-radius:8px; margin-bottom:15px; max-height: 500px; object-fit: cover;">` : '<div style="background: #f0f0f0; height: 300px; display: flex; align-items: center; justify-content: center; border-radius: 8px; margin-bottom: 15px; color: var(--text-secondary);">No image</div>';
+                
                 content.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                        <img src="${data.user_avatar}" style="width:40px; height:40px; border-radius:50%;">
-                        <b>${data.username}</b>
-                    </div>
-                    ${imgHtml}
-                    <p>${data.caption}</p>
-                    <div style="margin-top:10px; font-size:0.85rem; color:var(--text-secondary);">
-                        ${data.likes_count} Likes • ${data.created_at} ago
+                    <div style="text-align: center;">
+                        <h3 style="margin-top: 0;">By <strong>${data.username}</strong></h3>
+                        ${imgHtml}
+                        <p style="margin: 15px 0; line-height: 1.6; text-align: left; font-size: 1rem;">${data.caption}</p>
                     </div>
                 `;
+            })
+            .catch(err => {
+                console.error('Error loading post:', err);
+                content.innerHTML = '<div style="text-align: center; padding: 20px; color: #ff6b6b;"><i class="fa-solid fa-exclamation-circle"></i> Failed to load post: ' + err.message + '</div>';
             });
         }
         function closeModal() { document.getElementById('postModal').style.display = 'none'; }
@@ -342,5 +358,34 @@
             if (event.target == document.getElementById('remarkModal')) closeRemarkModal();
         }
     </script>
+
+    <!-- POST MODAL -->
+    <div id="postModal" class="modal-overlay">
+        <div class="modal-box">
+            <button onclick="closeModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">
+                <i class="fa-solid fa-times"></i>
+            </button>
+            <div id="modalContent" style="max-height: 600px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- BAN/REMARK MODAL -->
+    <div id="remarkModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="margin-top: 0; color: var(--text-main);">Update User Status & Notes</h3>
+            <form id="remarkForm" method="POST" style="display: flex; flex-direction: column; gap: 15px;">
+                {% csrf_token %}
+                <div>
+                    <label style="display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.9rem;">Admin Notes</label>
+                    <textarea name="admin_note" style="width: 100%; height: 120px; padding: 12px; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; font-family: 'Poppins'; resize: none; background: var(--bg-body); color: var(--text-main); box-sizing: border-box;" placeholder="Add notes about this user..."></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn-ban" style="flex: 1; cursor: pointer;">Save & Update</button>
+                    <button type="button" onclick="closeRemarkModal()" class="status-badge badge-gray" style="flex: 1; padding: 8px; border: none; cursor: pointer;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </body>
 </html>

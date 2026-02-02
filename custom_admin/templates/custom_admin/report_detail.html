@@ -1,0 +1,191 @@
+{% extends 'custom_admin/admin_base.html' %}
+{% block admin_body %}
+<div class="page-header">
+    <h4>Report Details</h4>
+    <h1>{% if report_type == 'user' %}User Report{% else %}Post Report{% endif %}</h1>
+</div>
+
+<div class="data-card" style="max-width: 800px; margin: 0 auto;">
+    <div style="padding: 30px;">
+        <!-- Report Info -->
+        <div style="margin-bottom: 30px;">
+            <h3 style="color: #fff; margin-bottom: 15px;">
+                {% if report_type == 'user' %}
+                    Report Against: <span style="color: #4ecdc4;">@{{ report.reported_user.username }}</span>
+                {% else %}
+                    Report Against: <span style="color: #4ecdc4;">Post #{{ report.post.id }}</span>
+                {% endif %}
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <span style="color: #a3aed0; font-size: 0.9rem;">Reported By</span>
+                    <div style="color: #fff; font-weight: bold;">@{{ report.reporter.username }}</div>
+                </div>
+                <div>
+                    <span style="color: #a3aed0; font-size: 0.9rem;">Report Date</span>
+                    <div style="color: #fff; font-weight: bold;">{{ report.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div>
+                    <span style="color: #a3aed0; font-size: 0.9rem;">Reason</span>
+                    <div style="color: #fff; font-weight: bold;">{{ report.get_reason_display }}</div>
+                </div>
+                <div>
+                    <span style="color: #a3aed0; font-size: 0.9rem;">Status</span>
+                    <div>
+                        {% if report.status == 'pending' %}
+                            <span class="status-badge badge-red">Pending</span>
+                        {% elif report.status == 'reviewed' %}
+                            <span class="status-badge badge-yellow">Reviewed</span>
+                        {% elif report.status == 'resolved' %}
+                            <span class="status-badge badge-green">Resolved</span>
+                        {% else %}
+                            <span class="status-badge badge-gray">Dismissed</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        {% if report.description %}
+        <div style="margin-bottom: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+            <span style="color: #a3aed0; font-size: 0.9rem;">Report Description</span>
+            <div style="color: #fff; margin-top: 10px; line-height: 1.6; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+                {{ report.description }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Content Preview -->
+        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; margin-bottom: 30px;">
+            <span style="color: #a3aed0; font-size: 0.9rem;">Content Details</span>
+            
+            {% if report_type == 'user' %}
+                <div style="margin-top: 15px;">
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <img src="{% if report.reported_user.profile_image %}{{ report.reported_user.profile_image.url }}{% else %}https://ui-avatars.com/api/?name={{ report.reported_user.username }}{% endif %}" 
+                             style="width: 80px; height: 80px; border-radius: 50%;">
+                        <div>
+                            <div style="color: #fff; font-weight: bold; font-size: 1.1rem;">{{ report.reported_user.username }}</div>
+                            <div style="color: #a3aed0; font-size: 0.9rem;">{{ report.reported_user.email }}</div>
+                            <div style="color: #a3aed0; font-size: 0.9rem;">Joined: {{ report.reported_user.created_at|date:"M d, Y" }}</div>
+                            {% if report.reported_user.bio %}
+                            <div style="color: #a3aed0; font-size: 0.85rem; margin-top: 5px;">{{ report.reported_user.bio }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Related Statistics -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px;">
+                        <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="color: #a3aed0; font-size: 0.85rem;">Total Posts</div>
+                            <div style="color: #fff; font-weight: bold; font-size: 1.3rem;">{{ report.reported_user.posts.count }}</div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="color: #a3aed0; font-size: 0.85rem;">Followers</div>
+                            <div style="color: #fff; font-weight: bold; font-size: 1.3rem;">{{ report.reported_user.followers.count }}</div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="color: #a3aed0; font-size: 0.85rem;">Reports</div>
+                            <div style="color: #fff; font-weight: bold; font-size: 1.3rem;">{{ report.reported_user.reports_received.count }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions for User -->
+                <div style="margin-top: 30px; display: flex; gap: 10px;">
+                    <a href="{% url 'custom_admin:users_list' %}?q={{ report.reported_user.username }}" class="status-badge badge-blue" style="text-decoration: none; padding: 10px 15px;">
+                        <i class="fa-solid fa-user"></i> View User
+                    </a>
+                    <form method="POST" action="{% url 'custom_admin:user_ban' report.reported_user.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="admin_note" value="Action taken from report: {{ report.get_reason_display }}">
+                        <button type="submit" class="status-badge badge-red" style="border: none; cursor: pointer; padding: 10px 15px;">
+                            <i class="fa-solid fa-ban"></i> {% if report.reported_user.is_active %}Ban User{% else %}Unban User{% endif %}
+                        </button>
+                    </form>
+                </div>
+            
+            {% else %}
+                <!-- Post Report Details -->
+                <div style="margin-top: 15px; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 8px;">
+                    {% if report.post.image %}
+                        <img src="{{ report.post.image.url }}" style="max-width: 300px; max-height: 300px; border-radius: 8px; object-fit: cover; margin-bottom: 15px;">
+                    {% endif %}
+                    
+                    <div style="color: #fff; margin-bottom: 10px;">
+                        <b>{{ report.post.caption }}</b>
+                    </div>
+                    
+                    <div style="color: #a3aed0; font-size: 0.9rem;">
+                        by <b>@{{ report.post.user.username }}</b> • {{ report.post.created_at|date:"M d, Y" }}
+                    </div>
+                    
+                    {% if report.post.is_flagged %}
+                    <div style="margin-top: 10px;">
+                        <span class="status-badge badge-red">
+                            <i class="fa-solid fa-exclamation-triangle"></i> NSFW Flagged
+                        </span>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Quick Post Stats -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px;">
+                        <div style="text-align: center;">
+                            <div style="color: #a3aed0; font-size: 0.85rem;">Likes</div>
+                            <div style="color: #fff; font-weight: bold;">{{ report.post.likes.count }}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: #a3aed0; font-size: 0.85rem;">Comments</div>
+                            <div style="color: #fff; font-weight: bold;">{{ report.post.comments.count }}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: #a3aed0; font-size: 0.85rem;">Reports</div>
+                            <div style="color: #fff; font-weight: bold;">{{ report.post.reports.count }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions for Post -->
+                <div style="margin-top: 30px; display: flex; gap: 10px;">
+                    <a href="{% url 'custom_admin:posts_list' %}?q={{ report.post.id }}" class="status-badge badge-blue" style="text-decoration: none; padding: 10px 15px;">
+                        <i class="fa-regular fa-eye"></i> View Post
+                    </a>
+                    <a href="{% url 'custom_admin:flag_post' report.post.id %}" class="status-badge badge-red" style="text-decoration: none; padding: 10px 15px;">
+                        <i class="fa-solid fa-flag"></i> {% if report.post.is_flagged %}Unflag{% else %}Flag NSFW{% endif %}
+                    </a>
+                    <a href="{% url 'custom_admin:delete_post' report.post.id %}" class="status-badge badge-gray" style="text-decoration: none; padding: 10px 15px;">
+                        {% if report.post.is_archived %}
+                            <i class="fa-solid fa-rotate-left"></i> Restore
+                        {% else %}
+                            <i class="fa-solid fa-trash"></i> Delete
+                        {% endif %}
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Status Change Section -->
+        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+            <span style="color: #a3aed0; font-size: 0.9rem;">Update Report Status</span>
+            <form method="POST" action="{% if report_type == 'user' %}{% url 'custom_admin:update_report_status' 'user' report.id %}{% else %}{% url 'custom_admin:update_report_status' 'post' report.id %}{% endif %}" style="margin-top: 15px; display: flex; gap: 10px;">
+                {% csrf_token %}
+                <select name="status" class="custom-select">
+                    <option value="pending" {% if report.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="reviewed" {% if report.status == 'reviewed' %}selected{% endif %}>Reviewed</option>
+                    <option value="resolved" {% if report.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                    <option value="dismissed" {% if report.status == 'dismissed' %}selected{% endif %}>Dismissed</option>
+                </select>
+                <button type="submit" class="btn-ban" style="padding: 8px 20px;">Update Status</button>
+            </form>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <a href="{% url 'custom_admin:reports_list' %}" class="status-badge badge-gray" style="text-decoration: none; padding: 10px 15px;">
+                <i class="fa-solid fa-arrow-left"></i> Back to Reports
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

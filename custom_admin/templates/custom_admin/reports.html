@@ -1,0 +1,185 @@
+{% extends 'custom_admin/admin_base.html' %}
+{% block admin_body %}
+<div class="page-header">
+    <h4>Community Management</h4>
+    <h1>Reports Center</h1>
+</div>
+
+<!-- Stats Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+    <div class="data-card" style="padding: 20px;">
+        <div style="font-size: 0.9rem; color: #a3aed0; margin-bottom: 10px;">Total Reports</div>
+        <div id="totalReportsCard" style="font-size: 2rem; font-weight: bold; color: #ff2323;">{{ total_reports }}</div>
+    </div>
+    <div class="data-card" style="padding: 20px;">
+        <div style="font-size: 0.9rem; color: #a3aed0; margin-bottom: 10px;">Pending</div>
+        <div id="pendingReportsCard" style="font-size: 2rem; font-weight: bold; color: #ff6b6b;">{{ pending_count }}</div>
+    </div>
+    <div class="data-card" style="padding: 20px;">
+        <div style="font-size: 0.9rem; color: #a3aed0; margin-bottom: 10px;">Reviewed</div>
+        <div id="reviewedReportsCard" style="font-size: 2rem; font-weight: bold; color: #4ecdc4;">{{ reviewed_count }}</div>
+    </div>
+</div>
+
+<div class="filter-container">
+    <div class="search-box">
+        <i class="fa-solid fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Search reports...">
+    </div>
+    <select id="typeSelect" class="custom-select" onchange="applyFilters()">
+        <option value="all">All Types</option>
+        <option value="user">User Reports</option>
+        <option value="post">Post Reports</option>
+    </select>
+    <select id="statusSelect" class="custom-select" onchange="applyFilters()">
+        <option value="all">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="reviewed">Reviewed</option>
+        <option value="resolved">Resolved</option>
+        <option value="dismissed">Dismissed</option>
+    </select>
+</div>
+
+<div class="data-card">
+    <table>
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Reported Item</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            {% for report in all_reports %}
+            <tr>
+                <td>
+                    {% if report.reported_user %}
+                        <span class="status-badge badge-blue">User Report</span>
+                    {% else %}
+                        <span class="status-badge badge-purple">Post Report</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if report.reported_user %}
+                        <a href="{% url 'custom_admin:users_list' %}?q={{ report.reported_user.username }}" style="color: #4ecdc4; text-decoration: none;">
+                            <b>@{{ report.reported_user.username }}</b>
+                        </a>
+                    {% else %}
+                        <a href="{% url 'custom_admin:posts_list' %}?q={{ report.post.id }}" style="color: #4ecdc4; text-decoration: none;">
+                            <b>Post #{{ report.post.id }}</b><br>
+                            <span style="font-size: 0.8rem; color: #a3aed0;">by @{{ report.post.user.username }}</span>
+                        </a>
+                    {% endif %}
+                </td>
+                <td>
+                    <span style="font-size: 0.9rem;">{{ report.get_reason_display }}</span>
+                    {% if report.description %}
+                        <br><span style="font-size: 0.75rem; color: #888;">{{ report.description|truncatechars:30 }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if report.status == 'pending' %}
+                        <span class="status-badge badge-red">Pending</span>
+                    {% elif report.status == 'reviewed' %}
+                        <span class="status-badge badge-yellow">Reviewed</span>
+                    {% elif report.status == 'resolved' %}
+                        <span class="status-badge badge-green">Resolved</span>
+                    {% else %}
+                        <span class="status-badge badge-gray">Dismissed</span>
+                    {% endif %}
+                </td>
+                <td style="font-size: 0.9rem; color: #a3aed0;">
+                    {{ report.created_at|date:"M d, Y" }}
+                </td>
+                <td>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        {% if report.reported_user %}
+                            <a href="{% url 'custom_admin:view_user_report' report.id %}" class="status-badge badge-blue" style="text-decoration: none; cursor: pointer;">
+                                <i class="fa-regular fa-eye"></i>
+                            </a>
+                        {% else %}
+                            <a href="{% url 'custom_admin:view_post_report' report.id %}" class="status-badge badge-blue" style="text-decoration: none; cursor: pointer;">
+                                <i class="fa-regular fa-eye"></i>
+                            </a>
+                        {% endif %}
+                        
+                        <!-- Status Update Dropdown -->
+                        <form method="POST" action="{% if report.reported_user %}{% url 'custom_admin:update_report_status' 'user' report.id %}{% else %}{% url 'custom_admin:update_report_status' 'post' report.id %}{% endif %}" style="display: inline;">
+                            {% csrf_token %}
+                            <select name="status" onchange="this.form.submit()" class="custom-select" style="padding: 5px; font-size: 0.85rem;">
+                                <option value="">Change Status</option>
+                                <option value="pending" {% if report.status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="reviewed" {% if report.status == 'reviewed' %}selected{% endif %}>Reviewed</option>
+                                <option value="resolved" {% if report.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                                <option value="dismissed" {% if report.status == 'dismissed' %}selected{% endif %}>Dismissed</option>
+                            </select>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" style="text-align:center; padding: 40px;">No reports found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+// Apply filters without page reload - AJAX only
+function applyFilters() {
+    const type = document.getElementById('typeSelect').value;
+    const status = document.getElementById('statusSelect').value;
+    const query = document.getElementById('searchInput').value;
+    
+    const searchParams = new URLSearchParams();
+    if (query) searchParams.append('q', query);
+    if (type !== 'all') searchParams.append('type', type);
+    if (status !== 'all') searchParams.append('status', status);
+    
+    // Make AJAX request with XMLHttpRequest header
+    fetch('{% url "custom_admin:reports_list" %}?' + searchParams.toString(), {
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+    .then(r => r.text())
+    .then(html => {
+        document.getElementById('tableBody').innerHTML = html;
+    })
+    .catch(e => console.error('Error loading reports:', e));
+}
+
+// Real-time search with debounce
+let searchTimeout;
+document.getElementById('searchInput')?.addEventListener('keyup', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        applyFilters();
+    }, 300); // Wait 300ms after user stops typing
+});
+
+// Update history without reload when filters change
+document.getElementById('typeSelect')?.addEventListener('change', function() {
+    updateURLParams();
+    applyFilters();
+});
+
+document.getElementById('statusSelect')?.addEventListener('change', function() {
+    updateURLParams();
+    applyFilters();
+});
+
+function updateURLParams() {
+    const type = document.getElementById('typeSelect').value;
+    const status = document.getElementById('statusSelect').value;
+    
+    const searchParams = new URLSearchParams();
+    if (type !== 'all') searchParams.append('type', type);
+    if (status !== 'all') searchParams.append('status', status);
+    
+    const newUrl = '{% url "custom_admin:reports_list" %}?' + searchParams.toString();
+    window.history.replaceState({}, '', newUrl);
+}
+</script>
+{% endblock %}
