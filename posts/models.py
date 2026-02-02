@@ -88,3 +88,15 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"{self.user.username} on {self.post.pk}"
+    
+class SavedPost(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='saved_posts')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='saved_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # A user can only save a specific post once
+        unique_together = ('user', 'post')
+
+    def __str__(self):
+        return f"{self.user.username} saved {self.post.pk}"

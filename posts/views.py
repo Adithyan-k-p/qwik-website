@@ -11,7 +11,7 @@ from django.utils.timesince import timesince
 from django.utils import timezone
 from .forms import PostForm
 from accounts.models import User, Follow
-from .models import Post, Like, Comment
+from .models import Post, Like, Comment, SavedPost
 
 @never_cache
 @login_required
@@ -24,6 +24,7 @@ def home_view(request):
     
     liked_posts_ids = Like.objects.filter(user=request.user).values_list('post_id', flat=True)
     following_ids = Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
+    saved_posts_ids = SavedPost.objects.filter(user=request.user).values_list('post_id', flat=True)
 
     # Suggestions logic...
     suggestions = User.objects.exclude(id=request.user.id) \
@@ -37,6 +38,7 @@ def home_view(request):
         'liked_posts_ids': liked_posts_ids,
         'following_ids': following_ids,
         'suggestions': suggestions, 
+        'saved_posts_ids': saved_posts_ids,
     }
     return render(request, 'posts/home.html', context)
 
@@ -252,6 +254,8 @@ def post_detail_ajax(request, post_id):
             'profile_url': reverse('accounts:profile', kwargs={'username': c.user.username})
         })
 
+    is_saved = SavedPost.objects.filter(user=request.user, post=post).exists()
+
     return JsonResponse({
         'pk': post.pk,
         'username': post.user.username,
@@ -263,6 +267,7 @@ def post_detail_ajax(request, post_id):
         'is_liked': post.likes.filter(user=request.user).exists(),
         'comments': comments_data,
         'created_at': timesince(post.created_at).upper(),
+        'is_saved': is_saved,
     })
 
 @login_required
@@ -323,3 +328,26 @@ def delete_comment_view(request, comment_id):
         comment.delete()
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'error'}, status=403)
+
+@login_required
+def save_post_view(request, post_id):
+    post = get_object_or_404(Post, pk=post_id)
+    
+    # Check if the saved record exists
+    saved_record = SavedPost.objects.filter(user=request.user, post=post).first()
+    
+    if saved_record:
+        # If it exists, delete it (Unsave)
+        saved_record.delete()
+        saved = False
+    else:
+        # If it doesn't exist, create it (Save)
+        SavedPost.objects.create(user=request.user, post=post)
+        saved = True
+
+    # Return JSON for AJAX
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'status': 'success', 'is_saved': saved})
+    
+    # Fallback for non-JS
+    return redirect(request.META.get('HTTP_REFERER', 'posts:home'))

@@ -44,6 +44,63 @@
     .nav-arrow { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 2.5rem; cursor: pointer; padding: 20px; transition: 0.2s; }
     .nav-arrow.disabled { opacity: 0; pointer-events: none; }
     .arrow-left { left: 10px; } .arrow-right { right: 10px; }
+
+    /* --- LIKES LIST MODAL --- */
+    .likes-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; 
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.6);
+        z-index: 6000; /* Higher than detail-modal */
+        align-items: center;
+        justify-content: center;
+    }
+
+    .likes-modal-content {
+        background: var(--bg-card);
+        width: 90%;
+        max-width: 400px;
+        max-height: 60vh; /* Don't take up full height */
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        animation: modalPop 0.2s ease-out;
+    }
+
+    .likes-modal-header {
+        padding: 15px;
+        border-bottom: 1px solid var(--bg-hover);
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--text-main);
+    }
+
+    .likes-modal-body {
+        padding: 15px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .like-user-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: var(--text-main);
+    }
+    .like-user-row:hover { opacity: 0.8; }
+    .like-user-row img {
+        width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+    }
 </style>
 {% endblock %}
 
@@ -105,17 +162,49 @@
             </div>
             <div class="detail-comments-box" id="m-comments-list"></div>
             <div class="detail-footer">
-                <div style="margin-bottom:8px;">
-                    <button id="m-like-btn" style="background:none; border:none; font-size:1.5rem; cursor:pointer; margin-right:12px;"><i class="fa-regular fa-heart"></i></button>
-                    <i class="fa-regular fa-comment" style="font-size:1.5rem;"></i>
+                <!-- Action Buttons Container -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    
+                    <!-- Left: Like & Comment -->
+                    <div class="left-actions">
+                        <button id="m-like-btn" style="background:none; border:none; font-size:1.5rem; cursor:pointer; margin-right:12px; color: var(--text-main);">
+                            <i class="fa-regular fa-heart"></i>
+                        </button>
+                        <i class="fa-regular fa-comment" style="font-size:1.5rem; cursor: pointer;"></i>
+                    </div>
+
+                    <!-- Right: Save (Bookmark) -->
+                    <div class="right-actions">
+                        <button id="m-save-btn" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color: var(--text-main);">
+                            <i class="fa-regular fa-bookmark"></i>
+                        </button>
+                    </div>
                 </div>
-                <b id="m-like-count">0</b> likes
+
+                <!-- Like Count -->
+                <div style="margin-bottom: 10px; cursor: pointer;" id="trigger-likes-list">
+                    <b id="m-like-count">0</b> likes
+                </div>
+
+                <!-- Comment Form -->
                 <form id="m-comment-form" style="display:flex; margin-top:15px; border-top:1px solid var(--bg-hover); padding-top:10px;">
                     {% csrf_token %}
                     <input type="text" name="comment_text" placeholder="Add a comment..." required style="flex:1; border:none; outline:none; background:transparent;">
                     <button type="submit" style="background:none; border:none; color:var(--accent-solid); font-weight:600;">Post</button>
                 </form>
             </div>
+        </div>
+    </div>
+</div>
+
+<div id="likesListModal" class="likes-modal-overlay">
+    <div class="likes-modal-content">
+        <div class="likes-modal-header">
+            <span>Likes</span>
+            <span id="closeLikesModal" style="cursor:pointer; font-size:1.5rem;">&times;</span>
+        </div>
+        <div class="likes-modal-body" id="likesListBody">
+            <!-- Users injected via JS -->
         </div>
     </div>
 </div>
@@ -173,9 +262,18 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('m-user-name-link').href = data.profile_url;
             document.getElementById('m-like-count').innerText = data.likes_count;
             
+            // LIKE BUTTON STATE
             const icon = document.querySelector('#m-like-btn i');
             icon.className = data.is_liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
             icon.style.color = data.is_liked ? '#e0245e' : '';
+
+            // SAVE BUTTON STATE
+            const saveIcon = document.querySelector('#m-save-btn i');
+            if (data.is_saved) {
+                saveIcon.className = 'fa-solid fa-bookmark';
+            } else {
+                saveIcon.className = 'fa-regular fa-bookmark';
+            }
 
             let html = `<div class="comment-row"><img src="${data.user_avatar}"><div><b>${data.username}</b> ${data.caption}</div></div>`;
             data.comments.forEach(c => {
@@ -276,6 +374,89 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('postsGrid').insertAdjacentHTML('beforeend', `<div class="grid-item" data-post-id="${p.id}"><img src="${p.image_url}"><div class="grid-overlay"><span><i class="fa-solid fa-heart"></i> ${p.like_count}</span><span><i class="fa-solid fa-comment"></i> ${p.comment_count}</span></div></div>`);
                     });
                 });
+        }
+    };
+
+    // 6. AJAX SAVE (BOOKMARK)
+    document.getElementById('m-save-btn').onclick = function() {
+        const icon = this.querySelector('i');
+        
+        fetch(`/posts/save/${currentPk}/`, { 
+            method: 'POST', 
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest', 
+                'X-CSRFToken': getCookie('csrftoken')
+            } 
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                if (data.is_saved) {
+                    // It is now saved -> Solid Icon
+                    icon.classList.remove('fa-regular');
+                    icon.classList.add('fa-solid');
+                    
+                    // Optional: Show toast if your global toast function exists
+                    if(typeof showQwikAlert === 'function') {
+                        showQwikAlert("Post Saved");
+                    }
+                } else {
+                    // It is now unsaved -> Regular Icon
+                    icon.classList.remove('fa-solid');
+                    icon.classList.add('fa-regular');
+                }
+            }
+        })
+        .catch(err => console.error("Error saving post:", err));
+    };
+
+    // --- LIKES LIST MODAL LOGIC ---
+    const likesModal = document.getElementById('likesListModal');
+    const likesBody = document.getElementById('likesListBody');
+    const closeLikesBtn = document.getElementById('closeLikesModal');
+    const likesTrigger = document.getElementById('trigger-likes-list');
+
+    // 1. Open Likes Modal
+    likesTrigger.onclick = function() {
+        // Show modal with loading state
+        likesModal.style.display = 'flex';
+        likesBody.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+        
+        // Fetch data using the existing view from Home Page logic
+        fetch(`/posts/get-likes/${currentPk}/`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.likes.length === 0) {
+                likesBody.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">No likes yet.</div>';
+            } else {
+                likesBody.innerHTML = data.likes.map(u => `
+                    <a href="${u.profile_url}" class="like-user-row">
+                        <img src="${u.avatar}">
+                        <div>
+                            <div style="font-weight:600;">${u.username}</div>
+                            <div style="font-size:0.85rem; color:var(--text-secondary);">${u.full_name}</div>
+                        </div>
+                    </a>
+                `).join('');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            likesBody.innerHTML = '<div style="text-align:center; color:red;">Error loading likes.</div>';
+        });
+    };
+
+    // 2. Close Likes Modal
+    closeLikesBtn.onclick = function() {
+        likesModal.style.display = 'none';
+    };
+
+    // 3. Close when clicking outside (Specific to this modal)
+    likesModal.onclick = function(e) {
+        if (e.target === likesModal) {
+            likesModal.style.display = 'none';
         }
     };
 });

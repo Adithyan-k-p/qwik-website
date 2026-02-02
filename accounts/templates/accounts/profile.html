@@ -177,6 +177,30 @@
         margin-bottom: 15px;
     }
     .edit-textarea:focus { border-color: var(--accent-solid); }
+
+    /* --- LIKES LIST MODAL (Z-Index 6000 to sit on top of Detail Modal) --- */
+    .likes-modal-overlay {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6); z-index: 6000;
+        align-items: center; justify-content: center;
+    }
+    .likes-modal-content {
+        background: var(--bg-card); width: 90%; max-width: 400px; max-height: 60vh;
+        border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: modalPop 0.2s ease-out;
+    }
+    .likes-modal-header {
+        padding: 15px; border-bottom: 1px solid var(--bg-hover); font-weight: 600;
+        display: flex; justify-content: space-between; align-items: center; color: var(--text-main);
+    }
+    .likes-modal-body {
+        padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
+    }
+    .like-user-row {
+        display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-main);
+    }
+    .like-user-row:hover { opacity: 0.8; }
+    .like-user-row img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
 </style>
 {% endblock %}
 
@@ -399,11 +423,30 @@
 
                 <div class="detail-comments-box" id="m-comments-list"></div>
                 <div class="detail-footer">
-                    <div>
-                        <button class="modal-action-btn" id="m-like-btn"><i class="fa-regular fa-heart"></i></button>
-                        <button class="modal-action-btn"><i class="fa-regular fa-comment"></i></button>
+                    <!-- Action Buttons Container (Flex) -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        
+                        <!-- Left: Like & Comment -->
+                        <div class="left-actions">
+                            <button id="m-like-btn" style="background:none; border:none; font-size:1.5rem; cursor:pointer; margin-right:12px; color: var(--text-main);">
+                                <i class="fa-regular fa-heart"></i>
+                            </button>
+                            <i class="fa-regular fa-comment" style="font-size:1.5rem; cursor: pointer;"></i>
+                        </div>
+
+                        <!-- Right: Save (Bookmark) -->
+                        <div class="right-actions">
+                            <button id="m-save-btn" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color: var(--text-main);">
+                                <i class="fa-regular fa-bookmark"></i>
+                            </button>
+                        </div>
                     </div>
-                    <b id="m-like-count">0</b> likes
+
+                    <!-- Clickable Like Count -->
+                    <div style="margin-bottom: 10px; cursor: pointer;" id="trigger-likes-list">
+                        <b id="m-like-count">0</b> likes
+                    </div>
+                    <!-- Comment Form -->
                     <form id="m-comment-form" style="display:flex; margin-top:15px; border-top:1px solid var(--bg-hover); padding-top:10px;">
                         {% csrf_token %}
                         <input type="text" name="comment_text" placeholder="Add a comment..." required style="flex:1; border:none; outline:none; background:transparent;">
@@ -440,6 +483,19 @@
             <div class="action-btn-group">
                 <button class="btn-cancel" onclick="closeActionModal('editCaptionModal')">Cancel</button>
                 <button class="btn-save" onclick="submitEditCaption()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIKES LIST MODAL -->
+    <div id="likesListModal" class="likes-modal-overlay">
+        <div class="likes-modal-content">
+            <div class="likes-modal-header">
+                <span>Likes</span>
+                <span id="closeLikesModal" style="cursor:pointer; font-size:1.5rem;">&times;</span>
+            </div>
+            <div class="likes-modal-body" id="likesListBody">
+                <!-- Users injected via JS -->
             </div>
         </div>
     </div>
@@ -587,6 +643,14 @@
                     icon.className = data.is_liked ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
                     icon.style.color = data.is_liked ? '#e0245e' : '';
 
+                    // 2. NEW: SAVE ICON STATE
+                    const saveIcon = document.querySelector('#m-save-btn i');
+                    if (data.is_saved) {
+                        saveIcon.className = 'fa-solid fa-bookmark';
+                    } else {
+                        saveIcon.className = 'fa-regular fa-bookmark';
+                    }
+
                     // Post Menu (3 dots)
                     const menuContainer = document.getElementById('m-menu-container');
                     const currentUser = "{{ request.user.username }}"; // Get Django user
@@ -726,6 +790,70 @@
                 }
             });
         };
+
+        // --- NEW: AJAX SAVE (BOOKMARK) ---
+        document.getElementById('m-save-btn').onclick = function() {
+            const icon = this.querySelector('i');
+            
+            fetch(`/posts/save/${currentPostPk}/`, { 
+                method: 'POST', 
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest', 
+                    'X-CSRFToken': getCookie('csrftoken')
+                } 
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (data.is_saved) {
+                        icon.classList.remove('fa-regular');
+                        icon.classList.add('fa-solid');
+                        showQwikAlert("Post Saved", "success");
+                    } else {
+                        icon.classList.remove('fa-solid');
+                        icon.classList.add('fa-regular');
+                    }
+                }
+            })
+            .catch(err => console.error(err));
+        };
+
+        // --- NEW: LIKES LIST MODAL LOGIC ---
+        const likesModal = document.getElementById('likesListModal');
+        const likesBody = document.getElementById('likesListBody');
+        const closeLikesBtn = document.getElementById('closeLikesModal');
+        const likesTrigger = document.getElementById('trigger-likes-list');
+
+        // Open List
+        likesTrigger.onclick = function() {
+            likesModal.style.display = 'flex';
+            likesBody.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+            
+            fetch(`/posts/get-likes/${currentPostPk}/`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.likes.length === 0) {
+                    likesBody.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">No likes yet.</div>';
+                } else {
+                    likesBody.innerHTML = data.likes.map(u => `
+                        <a href="${u.profile_url}" class="like-user-row">
+                            <img src="${u.avatar}">
+                            <div>
+                                <div style="font-weight:600;">${u.username}</div>
+                                <div style="font-size:0.85rem; color:var(--text-secondary);">${u.full_name}</div>
+                            </div>
+                        </a>
+                    `).join('');
+                }
+            });
+        };
+
+        // Close List
+        closeLikesBtn.onclick = function() { likesModal.style.display = 'none'; };
+        // Close when clicking outside specific to likes modal
+        likesModal.onclick = function(e) { if (e.target === likesModal) likesModal.style.display = 'none'; };
     });
 
     // Helper for CSRF 
